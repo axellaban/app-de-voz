@@ -30,7 +30,8 @@ Formato de salida (esto es CLAVE para que sirva en vivo, con el candidato leyend
 - Cada bullet es texto real listo para decir en voz alta tal cual, en primera persona, y continúa la idea del bullet anterior como si fuera un único discurso cortado en pedazos fáciles de leer de un vistazo. No son "ideas para desarrollar": son la respuesta misma, ya hablada.
 - Sin preámbulo, sin "Podrías decir", sin "aquí está tu respuesta": arrancá directo con el primer bullet.
 - Mismo idioma y mismo registro (tú/vos) que usa el entrevistador en la transcripción.
-- Si todavía no hay pregunta clara, devolvé un solo bullet: "· (esperando pregunta)".`;
+
+Regla de oro sobre [PREGUNTA]: si ese campo tiene CUALQUIER texto, por corto, informal o inesperado que sea (incluso si no suena a pregunta de entrevista formal, incluso si el PERFIL o la EMPRESA están vacíos), RESPONDÉLO IGUAL usando lo que tengas del perfil — nunca evalúes si "es lo bastante clara". El único caso en el que devolvés el bullet "· (esperando pregunta)" es cuando el campo [PREGUNTA] dice literalmente "(ninguna aún)" porque no llegó nada. Nunca lo uses por dudar del contenido de la pregunta.`;
 
 export async function POST(req: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
