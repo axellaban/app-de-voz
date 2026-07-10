@@ -665,7 +665,10 @@ export default function Page() {
                       {a.question}
                     </div>
                     <div className="answer-card-text">
-                      {a.text || (
+                      {a.text ? (
+                        // Colapsa líneas en blanco entre bullets: sin espacio extra.
+                        a.text.replace(/\n[ \t]*\n+/g, "\n").trim()
+                      ) : (
                         <span className="mono answer-card-loading">
                           generando…
                         </span>
