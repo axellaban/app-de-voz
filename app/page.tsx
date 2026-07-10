@@ -423,12 +423,13 @@ export default function Page() {
     <main style={S.main}>
       <header style={S.header}>
         <div style={S.brand}>
-          <span style={{ ...S.dot, ...(live ? S.dotLive : {}) }} />
-          <span className="mono" style={S.brandText}>
-            copiloto<span style={{ color: "var(--ink-faint)" }}>/es</span>
+          <span className="cotorra-float" style={{ fontSize: 26, marginRight: 2 }}>🦜</span>
+          <span style={S.brandText}>
+            <span className="cotorra-title-gradient" style={{ fontSize: 22 }}>CotorreadoAI</span>
+            <span style={{ color: "var(--loro-cyan)", fontSize: 13, marginLeft: 4, fontWeight: "600" }}>/es</span>
           </span>
         </div>
-        <span className="mono" style={S.statusChip(status)}>
+        <span className={`mono ${status === "live" ? "pulse-badge" : ""}`} style={S.statusChip(status)}>
           {status === "idle" && "en espera"}
           {connecting && "conectando…"}
           {live && "en vivo"}
@@ -438,7 +439,7 @@ export default function Page() {
 
       {!live && (
         <p className="mono" style={S.tagline}>
-          Escucha la entrevista y te sugiere qué responder, en vivo.
+          🌴 El loro tropical que te sopla las respuestas en vivo para tus entrevistas.
         </p>
       )}
 
@@ -446,22 +447,22 @@ export default function Page() {
       {!live && (
         <div style={{ ...S.modeRow, ...(isIOS ? S.modeRowSingle : {}) }}>
           <button
-            className="mono"
-            style={{ ...S.modeBtn, ...(mode === "mic" ? S.modeOn : {}) }}
+            className={`mono interactive-btn ${mode === "mic" ? "interactive-btn-on" : ""}`}
             onClick={() => setMode("mic")}
             disabled={connecting}
+            style={{ width: "100%" }}
           >
-            🎙 Micrófono
+            🎙️ Micrófono
             <span style={S.modeSub}>celular escuchando la sala</span>
           </button>
           {!isIOS && (
             <button
-              className="mono"
-              style={{ ...S.modeBtn, ...(mode === "tab" ? S.modeOn : {}) }}
+              className={`mono interactive-btn ${mode === "tab" ? "interactive-btn-on" : ""}`}
               onClick={() => setMode("tab")}
               disabled={connecting}
+              style={{ width: "100%" }}
             >
-              🖥 Pestaña
+              🖥️ Pestaña
               <span style={S.modeSub}>audio directo del Meet · desktop</span>
             </button>
           )}
@@ -481,9 +482,9 @@ export default function Page() {
 
       {/* Contexto de la entrevista (solo antes de arrancar) */}
       {!live && (
-        <div style={S.panel}>
+        <div className="glass-panel" style={S.panel}>
           <label className="mono" style={S.label}>
-            contexto de la entrevista
+            🌴 contexto de la entrevista
           </label>
           <div style={S.contextRow}>
             <div style={S.contextField}>
@@ -491,10 +492,10 @@ export default function Page() {
                 empresa
               </label>
               <input
+                className="cotorra-input"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Ej: Mercado Libre"
-                style={S.input}
                 disabled={connecting}
               />
             </div>
@@ -503,10 +504,10 @@ export default function Page() {
                 puesto / rol
               </label>
               <input
+                className="cotorra-input"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 placeholder="Ej: Frontend Sr."
-                style={S.input}
                 disabled={connecting}
               />
             </div>
@@ -515,15 +516,15 @@ export default function Page() {
             tu perfil / cv
           </label>
           <textarea
+            className="cotorra-textarea"
             value={profile}
             onChange={(e) => setProfile(e.target.value)}
-            placeholder="Pegá tu CV, experiencia o notas. La respuesta se ancla en esto."
-            style={S.textarea}
+            placeholder="Pegá tu CV, experiencia o notas. El loro se anclará en esto para no inventar nada."
             disabled={connecting}
           />
           {(!company.trim() || !role.trim()) && (
             <p className="mono" style={S.contextHint}>
-              Completá empresa y puesto para respuestas mejor dirigidas.
+              Completá empresa y puesto para que el loro prepare respuestas mejor orientadas.
             </p>
           )}
         </div>
@@ -533,18 +534,18 @@ export default function Page() {
       {live && (
         <div style={S.tabsRow}>
           <button
-            className="mono"
-            style={{ ...S.tabBtn, ...(tab === "answer" ? S.tabOn : {}) }}
+            className={`mono interactive-btn ${tab === "answer" ? "interactive-btn-on" : ""}`}
+            style={{ width: "100%", padding: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}
             onClick={() => setTab("answer")}
           >
-            Respuestas
+            🪶 Respuestas sugeridas
           </button>
           <button
-            className="mono"
-            style={{ ...S.tabBtn, ...(tab === "transcript" ? S.tabOn : {}) }}
+            className={`mono interactive-btn ${tab === "transcript" ? "interactive-btn-on" : ""}`}
+            style={{ width: "100%", padding: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}
             onClick={() => setTab("transcript")}
           >
-            Transcripción
+            📝 Transcripción
           </button>
         </div>
       )}
@@ -552,27 +553,27 @@ export default function Page() {
       {/* Contenido */}
       <section style={S.content}>
         {(!live || tab === "answer") && (
-          <div style={{ ...S.panel, ...S.answerPanel }}>
+          <div className={`glass-panel ${live ? "glass-panel-active" : ""}`} style={{ ...S.panel, ...S.answerPanel }}>
             {!live && (
               <label className="mono" style={S.label}>
-                respuestas sugeridas
+                🟢 respuestas sugeridas por el loro
               </label>
             )}
             <div ref={scrollA} style={S.answerBody}>
               {answers.length === 0 ? (
                 <p style={S.placeholder}>
-                  Cuando el entrevistador termine de preguntar, tu respuesta aparece acá en ~1-2s.
+                  🦜 Silencio en la selva... Cuando el entrevistador termine de preguntar, tu respuesta sugerida aparecerá acá en ~1-2s.
                 </p>
               ) : (
                 answers.map((a) => (
-                  <div key={a.id} style={S.answerCard}>
+                  <div key={a.id} className="answer-card-animate" style={S.answerCard}>
                     <div className="mono" style={S.answerQ}>
-                      {a.question}
+                      ❓ {a.question}
                     </div>
                     <div style={S.answerText}>
                       {a.text || (
                         <span style={{ ...S.gen }} className="mono">
-                          generando…
+                          el loro está pensando… 🦜
                         </span>
                       )}
                     </div>
@@ -584,10 +585,10 @@ export default function Page() {
         )}
 
         {live && tab === "transcript" && (
-          <div style={{ ...S.panel, ...S.answerPanel }}>
+          <div className="glass-panel" style={{ ...S.panel, ...S.answerPanel }}>
             <div ref={scrollT} style={S.transcript}>
               {lines.length === 0 ? (
-                <p style={S.placeholder}>La transcripción aparece acá.</p>
+                <p style={S.placeholder}>El loro está escuchando lo que dicen... 🦜</p>
               ) : (
                 lines.map((l) => (
                   <p
@@ -607,11 +608,11 @@ export default function Page() {
       <footer style={S.footer}>
         {!live ? (
           <button onClick={start} disabled={connecting} style={S.primaryBtn} className="mono">
-            {connecting ? "conectando…" : mode === "mic" ? "▶ activar micrófono" : "▶ compartir pestaña"}
+            {connecting ? "Trayendo al loro... 🦜" : mode === "mic" ? "▶ Soltar loro (activar micrófono)" : "▶ Soltar loro (compartir pestaña)"}
           </button>
         ) : (
           <button onClick={stop} style={S.stopBtn} className="mono">
-            ■ detener
+            ■ Guardar loro en la jaula (detener)
           </button>
         )}
         {!live && (
@@ -632,80 +633,52 @@ const S: Record<string, any> = {
     display: "flex",
     flexDirection: "column",
     padding:
-      "calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom))",
-    gap: 12,
+      "calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))",
+    gap: 14,
     maxWidth: 760,
     margin: "0 auto",
   },
   header: { display: "flex", alignItems: "center", justifyContent: "space-between" },
-  brand: { display: "flex", alignItems: "center", gap: 9 },
-  brandText: { fontSize: 15, letterSpacing: "-0.02em", fontWeight: 600 },
-  tagline: { fontSize: 12, color: "var(--ink-faint)", lineHeight: 1.4, marginTop: -4 },
-  dot: { width: 9, height: 9, borderRadius: "50%", background: "var(--ink-faint)" },
-  dotLive: { background: "var(--live)", boxShadow: "0 0 0 4px rgba(240,82,75,0.15)", animation: "pulse 1.6s ease-in-out infinite" },
+  brand: { display: "flex", alignItems: "center", gap: 8 },
+  brandText: { fontSize: 20, fontWeight: 700, display: "flex", alignItems: "center" },
+  tagline: { fontSize: 13, color: "var(--ink-dim)", lineHeight: 1.5, marginTop: -4 },
   statusChip: (s: Status) => ({
-    fontSize: 11.5,
-    padding: "5px 11px",
+    fontSize: 11,
+    padding: "5px 12px",
     borderRadius: 999,
     border: "1px solid var(--line)",
-    color: s === "live" ? "var(--accent)" : s === "error" ? "var(--live)" : "var(--ink-dim)",
-    background: "var(--panel)",
+    color: s === "live" ? "var(--loro-red)" : s === "error" ? "var(--loro-red)" : "var(--ink-dim)",
+    background: "rgba(9, 29, 21, 0.6)",
   }),
-  modeRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+  modeRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
   modeRowSingle: { gridTemplateColumns: "1fr" },
-  modeBtn: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-    alignItems: "flex-start",
-    background: "var(--panel)",
-    border: "1px solid var(--line)",
-    borderRadius: "var(--radius)",
-    padding: "12px 13px",
-    color: "var(--ink-dim)",
-    fontSize: 14,
-    fontWeight: 600,
-    textAlign: "left",
-  },
-  modeOn: { borderColor: "var(--accent)", color: "var(--ink)", background: "var(--panel-2)" },
-  modeSub: { fontSize: 10.5, color: "var(--ink-faint)", fontWeight: 400, letterSpacing: 0 },
+  modeSub: { fontSize: 10.5, color: "var(--ink-faint)", fontWeight: 400, letterSpacing: 0, marginTop: 2 },
   errorBar: {
-    fontSize: 12.5,
-    color: "#ffb4b0",
-    background: "rgba(240,82,75,0.08)",
-    border: "1px solid rgba(240,82,75,0.3)",
-    borderRadius: 8,
-    padding: "10px 13px",
-    lineHeight: 1.4,
+    fontSize: 13,
+    color: "#fda4af",
+    background: "rgba(244, 63, 94, 0.08)",
+    border: "1px solid rgba(244, 63, 94, 0.3)",
+    borderRadius: 12,
+    padding: "12px 16px",
+    lineHeight: 1.5,
   },
   panel: {
     background: "var(--panel)",
     border: "1px solid var(--line)",
     borderRadius: "var(--radius)",
-    padding: 13,
+    padding: 16,
     display: "flex",
     flexDirection: "column",
-    gap: 8,
+    gap: 10,
   },
   label: {
-    fontSize: 10.5,
+    fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: "0.08em",
-    color: "var(--ink-faint)",
+    color: "var(--loro-yellow)",
+    fontWeight: "700",
   },
-  textarea: {
-    resize: "none",
-    height: 110,
-    background: "var(--panel-2)",
-    border: "1px solid var(--line)",
-    borderRadius: 8,
-    color: "var(--ink)",
-    padding: 10,
-    fontSize: 16,
-    lineHeight: 1.5,
-    outline: "none",
-  },
-  contextRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 },
+  contextRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
   contextField: { display: "flex", flexDirection: "column", gap: 4 },
   miniLabel: {
     fontSize: 10,
@@ -713,71 +686,59 @@ const S: Record<string, any> = {
     letterSpacing: "0.06em",
     color: "var(--ink-faint)",
   },
-  input: {
-    background: "var(--panel-2)",
-    border: "1px solid var(--line)",
-    borderRadius: 8,
-    color: "var(--ink)",
-    padding: "9px 10px",
-    fontSize: 16,
-    outline: "none",
-    width: "100%",
-  },
-  contextHint: { fontSize: 11, color: "var(--ink-faint)", lineHeight: 1.4 },
-  tabsRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 },
-  tabBtn: {
-    background: "var(--panel)",
-    border: "1px solid var(--line)",
-    borderRadius: 8,
-    padding: "9px",
-    color: "var(--ink-dim)",
-    fontSize: 13,
-    fontWeight: 600,
-  },
-  tabOn: { borderColor: "var(--accent)", color: "var(--ink)", background: "var(--panel-2)" },
+  contextHint: { fontSize: 11.5, color: "var(--ink-faint)", lineHeight: 1.4 },
+  tabsRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
   content: { flex: 1, minHeight: 0, display: "flex" },
   answerPanel: { flex: 1, minHeight: 0 },
   answerBody: {
     flex: 1,
-    minHeight: 220,
+    minHeight: 250,
     overflowY: "auto",
     WebkitOverflowScrolling: "touch",
     display: "flex",
     flexDirection: "column",
-    gap: 10,
+    gap: 12,
   },
   answerCard: {
     background: "var(--panel-2)",
-    border: "1px solid var(--accent-dim)",
-    borderRadius: 8,
-    padding: 12,
+    border: "1px solid var(--line)",
+    borderRadius: 12,
+    padding: 16,
+    transition: "all 0.3s ease",
   },
-  answerQ: { fontSize: 11, color: "var(--ink-faint)", marginBottom: 7, lineHeight: 1.35 },
-  answerText: { fontSize: 16.5, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "var(--ink)" },
-  gen: { fontSize: 12, color: "var(--accent)" },
-  transcript: { flex: 1, minHeight: 220, overflowY: "auto", WebkitOverflowScrolling: "touch" },
-  line: { fontSize: 14.5, lineHeight: 1.55, marginBottom: 6 },
-  placeholder: { fontSize: 13, color: "var(--ink-faint)", lineHeight: 1.5, padding: 6 },
-  footer: { display: "flex", flexDirection: "column", gap: 8, position: "sticky", bottom: 0 },
+  answerQ: { fontSize: 12, color: "var(--loro-cyan)", marginBottom: 8, lineHeight: 1.4, fontWeight: "600" },
+  answerText: { fontSize: 16, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "var(--ink)" },
+  gen: { fontSize: 13, color: "var(--loro-yellow)" },
+  transcript: { flex: 1, minHeight: 250, overflowY: "auto", WebkitOverflowScrolling: "touch" },
+  line: { fontSize: 15, lineHeight: 1.6, marginBottom: 8 },
+  placeholder: { fontSize: 13.5, color: "var(--ink-dim)", lineHeight: 1.6, padding: 8, textAlign: "center", fontStyle: "italic" },
+  footer: { display: "flex", flexDirection: "column", gap: 10, position: "sticky", bottom: 0, paddingTop: 8 },
   primaryBtn: {
-    background: "var(--accent)",
-    color: "#08160d",
+    background: "linear-gradient(135deg, var(--loro-green) 0%, var(--loro-yellow) 100%)",
+    color: "#040d0a",
     border: "none",
-    borderRadius: 10,
-    padding: "15px",
-    fontSize: 15,
-    fontWeight: 800,
+    borderRadius: 14,
+    padding: "16px",
+    fontSize: 16,
+    fontWeight: "800",
     width: "100%",
+    boxShadow: "0 4px 20px rgba(16, 185, 129, 0.25)",
+    transition: "all 0.2s ease",
+    cursor: "pointer",
   },
   stopBtn: {
-    background: "transparent",
-    color: "var(--live)",
-    border: "1px solid var(--live)",
-    borderRadius: 10,
-    padding: "15px",
-    fontSize: 15,
-    fontWeight: 800,
+    background: "linear-gradient(135deg, var(--loro-red) 0%, #b91c1c 100%)",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: 14,
+    padding: "16px",
+    fontSize: 16,
+    fontWeight: "800",
     width: "100%",
+    boxShadow: "0 4px 20px rgba(244, 63, 94, 0.25)",
+    transition: "all 0.2s ease",
+    cursor: "pointer",
   },
-  hint: { fontSize: 11.5, color: "var(--ink-faint)", textAlign: "center", lineHeight: 1.4 },
+  hint: { fontSize: 12, color: "var(--ink-faint)", textAlign: "center", lineHeight: 1.5 },
 };
+
