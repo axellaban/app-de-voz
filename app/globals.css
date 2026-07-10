@@ -1,5 +1,5 @@
 :root {
-  /* CotorreadoAI Color Palette (Color loro / cotorra) */
+  /* CotorreadoAI Color Palette (Colores cotorra) */
   --bg: #040d0a;          /* Fondo selva oscura */
   --panel: #0d1a14;       /* Panel verde mate */
   --panel-2: #14281f;     /* Panel secundario verde */
@@ -8,10 +8,10 @@
   --ink-dim: #99b8a9;     /* Texto secundario */
   --ink-faint: #5b7869;   /* Texto tenue */
   
-  --loro-green: #10b981;  /* Verde cotorra */
-  --loro-yellow: #f59e0b; /* Amarillo loro */
-  --loro-cyan: #06b6d4;   /* Cian pluma */
-  --loro-red: #ef4444;    /* Rojo pico */
+  --cotorra-green: #10b981;  /* Verde cotorra */
+  --cotorra-yellow: #f59e0b; /* Amarillo cotorra */
+  --cotorra-cyan: #06b6d4;   /* Cian pluma */
+  --cotorra-red: #ef4444;    /* Rojo pico */
   
   --radius: 12px;
 }
@@ -65,7 +65,7 @@ input {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  background: linear-gradient(135deg, var(--loro-green) 20%, var(--loro-yellow) 80%);
+  background: linear-gradient(135deg, var(--cotorra-green) 20%, var(--cotorra-yellow) 80%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -127,7 +127,7 @@ input {
 
 .btn-select-active {
   background: var(--panel-2) !important;
-  border-color: var(--loro-green) !important;
+  border-color: var(--cotorra-green) !important;
   color: #fff !important;
 }
 
@@ -142,7 +142,7 @@ input {
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--loro-green);
+  color: var(--cotorra-green);
   font-weight: 700;
 }
 
@@ -168,7 +168,7 @@ input {
 }
 
 .form-input:focus, .form-textarea:focus {
-  border-color: var(--loro-green);
+  border-color: var(--cotorra-green);
 }
 
 .form-textarea {
@@ -196,7 +196,7 @@ input {
 .status-chip-live {
   border-color: rgba(244, 63, 94, 0.3) !important;
   background: rgba(244, 63, 94, 0.08) !important;
-  color: var(--loro-red) !important;
+  color: var(--cotorra-red) !important;
   font-weight: 700;
 }
 
@@ -220,7 +220,7 @@ input {
 }
 
 .answer-card-first {
-  border-left: 3px solid var(--loro-green) !important;
+  border-left: 3px solid var(--cotorra-green) !important;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.02);
 }
 
@@ -231,7 +231,7 @@ input {
 
 .answer-card-question {
   font-size: 11.5px;
-  color: var(--loro-cyan);
+  color: var(--cotorra-cyan);
   margin-bottom: 6px;
   font-weight: 600;
   line-height: 1.35;
@@ -246,7 +246,7 @@ input {
 
 .answer-card-loading {
   font-size: 12px;
-  color: var(--loro-yellow);
+  color: var(--cotorra-yellow);
   font-weight: 500;
 }
 
@@ -266,7 +266,7 @@ input {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--loro-red);
+  background: var(--cotorra-red);
   flex-shrink: 0;
   animation: pulse 1.6s ease-in-out infinite;
 }
@@ -328,12 +328,12 @@ input {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--loro-green) 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--cotorra-green) 0%, #059669 100%);
   color: #030d09;
 }
 
 .btn-stop {
-  background: var(--loro-red);
+  background: var(--cotorra-red);
   color: #ffffff;
 }
 

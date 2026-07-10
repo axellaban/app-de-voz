@@ -521,7 +521,7 @@ export default function Page() {
 
       {!live && (
         <p className="mono tagline">
-          El loro escucha tu entrevista en tiempo real y te cotorrea respuestas. 🦜
+          La cotorra escucha tu entrevista en tiempo real y te cotorrea respuestas. 🦜
         </p>
       )}
 
@@ -548,12 +548,6 @@ export default function Page() {
           )}
         </div>
       )}
-      {!live && isIOS && (
-        <p className="mono form-hint">
-          📱 En iPhone solo está disponible el micrófono — Safari no permite compartir el audio de la pestaña.
-        </p>
-      )}
-
       {error && (
         <div className="mono error-box" style={{
           fontSize: 13,
@@ -606,7 +600,7 @@ export default function Page() {
           <textarea
             value={profile}
             onChange={(e) => setProfile(e.target.value)}
-            placeholder="Pegá tu CV, experiencia o notas. El loro usará esto para responder."
+            placeholder="Pegá tu CV, experiencia o notas. La cotorra usará esto para responder."
             className="form-textarea"
             disabled={connecting}
           />
@@ -654,7 +648,7 @@ export default function Page() {
           <div className="panel" style={{ flex: 1, minHeight: 0 }}>
             {!live && (
               <label className="mono form-label">
-                Respuestas sugeridas por el loro
+                Respuestas sugeridas por la cotorra
               </label>
             )}
             <div ref={scrollA} className="answers-container">
@@ -662,7 +656,7 @@ export default function Page() {
                 <p className="placeholder" style={{ fontSize: 13.5, color: "var(--ink-dim)", lineHeight: 1.6, textAlign: "center", fontStyle: "italic", padding: "8px" }}>
                   {live
                     ? "Cuando el entrevistador termine de preguntar, tu respuesta aparece acá en ~1-2s."
-                    : "🦜 Acá vas a ver las respuestas que el loro te sopla durante la entrevista."}
+                    : "🦜 Acá vas a ver las respuestas que la cotorra te sopla durante la entrevista."}
                 </p>
               ) : (
                 answers.map((a, index) => (
@@ -711,7 +705,7 @@ export default function Page() {
       <footer style={{ display: "flex", flexDirection: "column", gap: 8, position: "sticky", bottom: 0, paddingTop: 4, background: "var(--bg)" }}>
         {!live ? (
           <button onClick={start} disabled={connecting} className="mono btn-action btn-primary">
-            {connecting ? "Conectando… 🦜" : mode === "mic" ? "▶ Soltar loro (activar micrófono)" : "▶ Soltar loro (compartir pestaña)"}
+            {connecting ? "Conectando… 🦜" : mode === "mic" ? "▶ Soltar cotorra (activar micrófono)" : "▶ Soltar cotorra (compartir pestaña)"}
           </button>
         ) : (
           <div className="grid-responsive" style={{ gap: 10 }}>
