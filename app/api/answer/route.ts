@@ -2,14 +2,14 @@ export const runtime = "edge";
 
 // ---------- Modelos disponibles ----------
 // El cliente manda { provider, model }. Cada provider usa su propia API key
-// (env var) y su propio endpoint de streaming. El default sigue siendo Gemini
-// 2.5 Flash (rápido y ya probado). Claude y OpenAI se activan cuando el usuario
-// carga su token en Vercel — si falta, se devuelve un error claro.
+// (env var) y su propio endpoint de streaming. Si falta la key, se devuelve un
+// error claro. El backend soporta los tres providers aunque la UI hoy muestre
+// solo Gemini.
 type Provider = "gemini" | "anthropic" | "openai";
 
-// IDs de modelo overridables por env (útil sobre todo para OpenAI, cuyos IDs
-// cambian seguido): si la env está seteada, pisa el model pedido por el cliente.
-const GEMINI_MODEL_DEFAULT = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+// Override por env SOLO si está explícitamente seteada (string vacío = no seteada).
+// Si no, manda el `model` que pide el cliente (el elegido en el selector).
+const GEMINI_MODEL_OVERRIDE = process.env.GEMINI_MODEL || "";
 const ANTHROPIC_MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL || "";
 const OPENAI_MODEL_OVERRIDE = process.env.OPENAI_MODEL || "";
 
@@ -77,9 +77,9 @@ function sameOriginOk(req: Request): boolean {
 }
 
 function resolveModel(provider: Provider, requested: string): string {
-  if (provider === "anthropic") return ANTHROPIC_MODEL_OVERRIDE || requested || "claude-opus-4-8";
-  if (provider === "openai") return OPENAI_MODEL_OVERRIDE || requested || "gpt-4o";
-  return GEMINI_MODEL_DEFAULT || requested || "gemini-2.5-flash";
+  if (provider === "anthropic") return ANTHROPIC_MODEL_OVERRIDE || requested || "claude-haiku-4-5";
+  if (provider === "openai") return OPENAI_MODEL_OVERRIDE || requested || "gpt-4o-mini";
+  return GEMINI_MODEL_OVERRIDE || requested || "gemini-2.5-flash";
 }
 
 export async function POST(req: Request) {

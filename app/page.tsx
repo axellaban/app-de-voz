@@ -195,46 +195,6 @@ function buildDgUrl(sttLang: string): string {
 const LS_KEY = "copiloto:context:v1";
 
 // ---------- Endpointing semántico ----------
-// Deepgram avisa fin de turno por silencio (speech_final/UtteranceEnd), pero
-// eso tarda ~1s igual. Si el texto acumulado YA suena a pregunta completa,
-// disparamos antes (speculativo) y si la persona sigue hablando, cancelamos y
-// volvemos a disparar. Capa 100% cliente: no cambia nada de la conexión.
-// Las "palabras que cuelgan" (preposiciones/conjunciones que indican frase
-// incompleta) son específicas del idioma del ENTREVISTADOR (el STT).
-const HANGING_ES = [
-  "y", "o", "pero", "que", "porque", "aunque", "si", "como", "cuando", "mientras",
-  "en", "a", "de", "del", "al", "con", "sobre", "para", "por", "sin", "entre", "hacia", "desde", "hasta",
-  "el", "la", "los", "las", "un", "una", "unos", "unas", "mi", "tu", "su",
-  "así que", "ya que", "es decir", "por ejemplo", "o sea",
-];
-const HANGING_EN = [
-  "and", "or", "but", "so", "because", "that", "which", "when", "while", "if", "as",
-  "the", "a", "an", "to", "of", "in", "on", "at", "for", "with", "from", "by", "about", "into", "than", "then",
-];
-function hangingRe(words: string[]): RegExp {
-  return new RegExp(
-    "(^|\\s)(" + words.map((w) => w.replace(/\s+/g, "\\s+")).join("|") + ")[.,]?\\s*$",
-    "i"
-  );
-}
-const HANGING_RE_ES = hangingRe(HANGING_ES);
-const HANGING_RE_EN = hangingRe(HANGING_EN);
-const QUESTION_END_RE = /[?¿]\s*$/;
-const SPEC_DEBOUNCE_MS = 180;
-// "Tu turno": tras responderse una pregunta, en modo micrófono la app deja de
-// tomar lo que oye como preguntas nuevas (sos vos respondiendo) hasta que hay
-// un silencio sostenido de este largo, que marca que terminaste y vuelve a
-// escuchar al entrevistador.
-const TURN_SILENCE_MS = 2800;
-
-function looksLikeCompleteQuestion(raw: string, hangRe: RegExp): boolean {
-  const t = raw.trim();
-  if (t.length < 6) return false;
-  if (QUESTION_END_RE.test(t)) return true;
-  if (hangRe.test(t)) return false;
-  return t.split(/\s+/).filter(Boolean).length >= 6;
-}
-
 export default function Page() {
   const [status, setStatus] = useState<Status>("idle");
   const [mode, setMode] = useState<Mode>("mic");
@@ -267,19 +227,12 @@ export default function Page() {
   // mientras la app estaba en background (Deepgram corta a los ~10s sin audio).
   const resumeRef = useRef<(() => void) | null>(null);
 
-  const transcriptRef = useRef("");
-  const questionBufRef = useRef(""); // acumula segmentos finales hasta el fin de utterance
+  const transcriptRef = useRef(""); // todo lo transcripto (contexto para el LLM)
+  const questionBufRef = useRef(""); // último tramo dicho, para "Responder ahora"
   const lineId = useRef(0);
   const ansId = useRef(0);
-  const specTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Turno de pregunta en curso: permite cancelar un disparo especulativo y
-  // reemplazarlo si la persona sigue hablando, reusando la misma tarjeta.
+  // Respuesta en curso: permite abortarla si se pide otra o se limpia.
   const turnRef = useRef<{ id: number; sentText: string; controller: AbortController | null } | null>(null);
-  // "Tu turno" (solo modo micrófono): mientras respondés, no tomar tu voz como
-  // pregunta. micModeRef fija si aplica esta lógica en la sesión actual.
-  const micModeRef = useRef(false);
-  const candidateTurnRef = useRef(false);
-  const turnEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrollT = useRef<HTMLDivElement | null>(null);
   const scrollA = useRef<HTMLDivElement | null>(null);
@@ -493,19 +446,8 @@ export default function Page() {
     questionBufRef.current = "";
     intentionalCloseRef.current = false;
     reconnectAttemptsRef.current = 0;
-    if (specTimerRef.current) {
-      clearTimeout(specTimerRef.current);
-      specTimerRef.current = null;
-    }
     turnRef.current?.controller?.abort();
     turnRef.current = null;
-    // "Tu turno" solo aplica en modo micrófono (en Pestaña no oís tu propia voz).
-    micModeRef.current = mode === "mic";
-    candidateTurnRef.current = false;
-    if (turnEndTimerRef.current) {
-      clearTimeout(turnEndTimerRef.current);
-      turnEndTimerRef.current = null;
-    }
     // Idioma del entrevistador (STT) fijado al inicio de la sesión.
     const dgUrl = buildDgUrl(STT_LANG[lang]);
     try {
@@ -653,11 +595,6 @@ export default function Page() {
     stableTimerRef.current = null;
     if (keepAliveRef.current) clearInterval(keepAliveRef.current);
     keepAliveRef.current = null;
-    if (specTimerRef.current) clearTimeout(specTimerRef.current);
-    specTimerRef.current = null;
-    if (turnEndTimerRef.current) clearTimeout(turnEndTimerRef.current);
-    turnEndTimerRef.current = null;
-    candidateTurnRef.current = false;
     turnRef.current?.controller?.abort();
     turnRef.current = null;
     try {
@@ -906,7 +843,7 @@ export default function Page() {
             className="mono"
             style={{ margin: "auto", textAlign: "center", color: "var(--ink-faint)", fontSize: 13, lineHeight: 1.6, maxWidth: 340, padding: 16 }}
           >
-            🦜 Cuando el entrevistador pregunte, tu respuesta aparece sola acá en ~1-2s. No tenés que apretar nada.
+            🦜 Escucha la entrevista y transcribe en vivo. Cuando quieras la respuesta, tocás “Responder ahora” y la genera sobre lo último dicho.
           </p>
         )}
         {live && tab === "answer" && (
@@ -914,7 +851,7 @@ export default function Page() {
             <div ref={scrollA} className="answers-container">
               {answers.length === 0 ? (
                 <p className="placeholder" style={{ fontSize: 13.5, color: "var(--ink-dim)", lineHeight: 1.6, textAlign: "center", fontStyle: "italic", padding: "8px" }}>
-                  Cuando el entrevistador termine de preguntar, tu respuesta aparece acá en ~1-2s.
+                  Tocá “Responder ahora” cuando termine la pregunta y tu respuesta aparece acá.
                 </p>
               ) : (
                 answers.map((a, index) => (
