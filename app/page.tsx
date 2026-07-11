@@ -561,7 +561,7 @@ export default function Page() {
     <main className="app-container">
       <header className="brand-header">
         <div className="brand">
-          <span className="mono brand-title">CotorreadoAI 🦜</span>
+          <span className="brand-title">CotorreadoAI 🦜</span>
         </div>
         <span className={`status-chip ${live ? "status-chip-live" : ""}`}>
           {status === "idle" && "en espera"}
@@ -572,7 +572,7 @@ export default function Page() {
       </header>
 
       {!live && (
-        <p className="mono tagline">
+        <p className="tagline">
           La cotorra escucha tu entrevista en tiempo real y te cotorrea respuestas. 🦜
         </p>
       )}
@@ -585,7 +585,7 @@ export default function Page() {
           </label>
           <div className="seg" role="tablist">
             <button
-              className={`mono seg-btn ${lang === "es" ? "seg-active" : ""}`}
+              className={`seg-btn ${lang === "es" ? "seg-active" : ""}`}
               onClick={() => setLang("es")}
               disabled={connecting}
               aria-selected={lang === "es"}
@@ -593,7 +593,7 @@ export default function Page() {
               🇪🇸 Español
             </button>
             <button
-              className={`mono seg-btn ${lang === "en" ? "seg-active" : ""}`}
+              className={`seg-btn ${lang === "en" ? "seg-active" : ""}`}
               onClick={() => setLang("en")}
               disabled={connecting}
               aria-selected={lang === "en"}
@@ -784,15 +784,15 @@ export default function Page() {
       {/* Footer */}
       <footer style={{ display: "flex", flexDirection: "column", gap: 8, position: "sticky", bottom: 0, paddingTop: 4, background: "var(--bg)" }}>
         {!live ? (
-          <button onClick={start} disabled={connecting} className="mono btn-action btn-primary">
+          <button onClick={start} disabled={connecting} className="btn-action btn-primary">
             {connecting ? "Conectando… 🦜" : mode === "mic" ? "▶ Soltar cotorra (activar micrófono)" : "▶ Soltar cotorra (compartir pestaña)"}
           </button>
         ) : (
           <div className="grid-responsive" style={{ gap: 10 }}>
-            <button onClick={answerNow} className="mono btn-action btn-ghost">
+            <button onClick={answerNow} className="btn-action btn-ghost">
               Responder ahora
             </button>
-            <button onClick={stop} className="mono btn-action btn-stop">
+            <button onClick={stop} className="btn-action btn-stop">
               ■ Detener
             </button>
           </div>

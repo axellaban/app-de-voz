@@ -1,18 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 :root {
-  /* CotorreadoAI Color Palette (Colores cotorra) */
-  --bg: #040d0a;          /* Fondo selva oscura */
-  --panel: #0d1a14;       /* Panel verde mate */
-  --panel-2: #14281f;     /* Panel secundario verde */
-  --line: #1c382b;        /* Bordes bosque */
-  --ink: #ebf5f0;         /* Texto claro */
-  --ink-dim: #99b8a9;     /* Texto secundario */
-  --ink-faint: #5b7869;   /* Texto tenue */
-  
-  --cotorra-green: #10b981;  /* Verde cotorra */
-  --cotorra-yellow: #f59e0b; /* Amarillo cotorra */
-  --cotorra-cyan: #06b6d4;   /* Cian pluma */
-  --cotorra-red: #ef4444;    /* Rojo pico */
-  
+  /* Paleta 11/10: negro con profundidad + UN solo acento esmeralda.
+     El verde es lo único cromático, así resalta. Rojo solo para stop/error. */
+  --bg: #070a09;          /* Casi negro, apenas cálido-verde */
+  --panel: #0f1512;       /* Panel levantado */
+  --panel-2: #171e1a;     /* Panel secundario */
+  --line: #222c27;        /* Hairline sutil */
+  --ink: #f0f4f2;         /* Texto claro */
+  --ink-dim: #90a099;     /* Texto secundario */
+  --ink-faint: #5a6a63;   /* Texto tenue */
+
+  --cotorra-green: #10b981;         /* Esmeralda: acento único (fills) */
+  --cotorra-green-bright: #34d399;  /* Esmeralda vívido (acento sobre negro) */
+  --cotorra-red: #ef4444;           /* Solo stop / error */
+
+  /* Legacy (ya no se usan como decoración, se mantienen por compatibilidad) */
+  --cotorra-yellow: #f59e0b;
+  --cotorra-cyan: #06b6d4;
+
   --radius: 12px;
 }
 
@@ -33,12 +39,15 @@ body {
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Sans humanista para el contenido (la voz del producto). */
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
+/* Mono solo para la "telemetría": chip de estado, labels, barra de escucha. */
 .mono {
-  font-family: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
 }
 
 button {
@@ -62,11 +71,12 @@ input {
 }
 
 .brand-title {
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
-  letter-spacing: -0.01em;
-  background: linear-gradient(135deg, var(--cotorra-green) 20%, var(--cotorra-yellow) 80%);
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--cotorra-green) 10%, var(--cotorra-green-bright) 90%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -271,11 +281,13 @@ input {
 }
 
 .answer-card-question {
-  font-size: 11.5px;
-  color: var(--cotorra-cyan);
-  margin-bottom: 6px;
-  font-weight: 600;
+  font-size: 11px;
+  color: var(--ink-dim);
+  margin-bottom: 8px;
+  font-weight: 500;
   line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .answer-card-text {
@@ -288,7 +300,7 @@ input {
 
 .answer-card-loading {
   font-size: 12.5px;
-  color: var(--cotorra-yellow);
+  color: var(--cotorra-green-bright);
   font-weight: 500;
   animation: pulse 1.2s ease-in-out infinite;
 }
