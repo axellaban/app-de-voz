@@ -691,51 +691,49 @@ export default function Page() {
         </div>
       )}
 
-      {/* Tabs móviles */}
+      {/* Tira de escucha en vivo: muestra lo último que se oye y da acceso
+          secundario a la transcripción. La respuesta es la protagonista. */}
       {live && (
-        <div className="grid-responsive" style={{ gap: 12 }}>
-          <button
-            className={`btn-select ${tab === "answer" ? "btn-select-active" : ""}`}
-            onClick={() => setTab("answer")}
-            style={{ alignItems: "center", justifyContent: "center", padding: "10px" }}
-          >
-            Respuestas
-          </button>
-          <button
-            className={`btn-select ${tab === "transcript" ? "btn-select-active" : ""}`}
-            onClick={() => setTab("transcript")}
-            style={{ alignItems: "center", justifyContent: "center", padding: "10px" }}
-          >
-            Transcripción
-          </button>
-        </div>
-      )}
-
-      {/* Escucha en vivo: última línea transcripta, siempre visible en la tab de respuestas */}
-      {live && tab === "answer" && (
         <div className="listen-bar mono">
-          <span className="listen-dot" />
-          <span className="listen-text">
-            {lines.length ? lines[lines.length - 1].text : "escuchando…"}
-          </span>
+          {tab === "answer" ? (
+            <>
+              <span className="listen-dot" />
+              <span className="listen-text">
+                {lines.length ? lines[lines.length - 1].text : "escuchando…"}
+              </span>
+              <button className="listen-toggle" onClick={() => setTab("transcript")}>
+                Transcripción
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="listen-text" style={{ color: "var(--ink)", fontWeight: 600 }}>
+                Transcripción completa
+              </span>
+              <button className="listen-toggle" onClick={() => setTab("answer")}>
+                ← Respuestas
+              </button>
+            </>
+          )}
         </div>
       )}
 
       {/* Contenido */}
-      <section style={{ flex: 1, minHeight: 0, display: "flex", marginTop: 4 }}>
-        {(!live || tab === "answer") && (
+      <section style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginTop: 4 }}>
+        {!live && (
+          <p
+            className="mono"
+            style={{ margin: "auto", textAlign: "center", color: "var(--ink-faint)", fontSize: 13, lineHeight: 1.6, maxWidth: 340, padding: 16 }}
+          >
+            🦜 Cuando el entrevistador pregunte, tu respuesta aparece sola acá en ~1-2s. No tenés que apretar nada.
+          </p>
+        )}
+        {live && tab === "answer" && (
           <div className="panel" style={{ flex: 1, minHeight: 0 }}>
-            {!live && (
-              <label className="mono form-label">
-                Respuestas sugeridas por la cotorra
-              </label>
-            )}
             <div ref={scrollA} className="answers-container">
               {answers.length === 0 ? (
                 <p className="placeholder" style={{ fontSize: 13.5, color: "var(--ink-dim)", lineHeight: 1.6, textAlign: "center", fontStyle: "italic", padding: "8px" }}>
-                  {live
-                    ? "Cuando el entrevistador termine de preguntar, tu respuesta aparece acá en ~1-2s."
-                    : "🦜 Acá vas a ver las respuestas que la cotorra te sopla durante la entrevista."}
+                  Cuando el entrevistador termine de preguntar, tu respuesta aparece acá en ~1-2s.
                 </p>
               ) : (
                 answers.map((a, index) => (
@@ -791,7 +789,7 @@ export default function Page() {
           </button>
         ) : (
           <div className="grid-responsive" style={{ gap: 10 }}>
-            <button onClick={answerNow} className="mono btn-action btn-primary">
+            <button onClick={answerNow} className="mono btn-action btn-ghost">
               Responder ahora
             </button>
             <button onClick={stop} className="mono btn-action btn-stop">

@@ -279,16 +279,18 @@ input {
 }
 
 .answer-card-text {
-  font-size: 15.5px;
-  line-height: 1.6;
+  font-size: 16.5px;
+  line-height: 1.72;
   white-space: pre-wrap;
   color: var(--ink);
+  letter-spacing: 0.005em;
 }
 
 .answer-card-loading {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--cotorra-yellow);
   font-weight: 500;
+  animation: pulse 1.2s ease-in-out infinite;
 }
 
 /* Barra de escucha en vivo: feedback de que el audio entra sin cambiar de tab */
@@ -313,11 +315,32 @@ input {
 }
 
 .listen-text {
+  flex: 1;
+  min-width: 0;
   font-size: 12px;
   color: var(--ink-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Acceso secundario a la transcripción: chip discreto, no un tab de igual peso. */
+.listen-toggle {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 11px;
+  color: var(--ink-dim);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.listen-toggle:hover {
+  color: var(--ink);
+  border-color: var(--cotorra-green);
 }
 
 @keyframes pulse {
@@ -373,9 +396,29 @@ input {
   color: #030d09;
 }
 
+/* Secundario/opcional: se lee como plan B, no como paso obligatorio. */
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-dim);
+  border: 1px solid var(--line);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--cotorra-green);
+  opacity: 1;
+}
+
+/* Detener: claro pero calmo (outline en vez de rojo sólido). */
 .btn-stop {
-  background: var(--cotorra-red);
-  color: #ffffff;
+  background: transparent;
+  color: var(--cotorra-red);
+  border: 1px solid rgba(244, 63, 94, 0.45);
+}
+
+.btn-stop:hover:not(:disabled) {
+  border-color: var(--cotorra-red);
+  opacity: 1;
 }
 
 .btn-hint {
