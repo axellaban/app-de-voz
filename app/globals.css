@@ -722,19 +722,74 @@ input {
   border-color: var(--ink-dim);
 }
 
-/* Botón de respuesta: oscuro, con ícono mágico y un glow verde suave. */
+/* Botón de respuesta: cara oscura con un halo de "colores de loro" (verde,
+   amarillo, naranja, cian) que fluye suave alrededor.
+   Capas: ::before = halo desenfocado / ::after = cara oscura / .inner = contenido. */
 .btn-answer {
+  position: relative;
+  z-index: 0;
+  background: transparent; /* la cara oscura vive en ::after, por encima del halo */
+  overflow: visible;
+}
+
+.btn-answer::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 13px;
+  background: linear-gradient(
+    90deg,
+    #10b981,
+    #34d399,
+    #a3e635,
+    #fbbf24,
+    #f59e0b,
+    #fb7185,
+    #22d3ee,
+    #10b981
+  );
+  background-size: 300% 100%;
+  filter: blur(9px);
+  opacity: 0.8;
+  z-index: 0;
+  animation: loroGlow 5s linear infinite;
+}
+
+.btn-answer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: var(--btn-dark);
+  z-index: 1;
+}
+
+.btn-answer:hover:not(:disabled)::after {
+  background: var(--btn-dark-hover);
+}
+
+.btn-answer:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.btn-answer-inner {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25), 0 6px 22px -6px rgba(16, 185, 129, 0.55);
 }
 
-.btn-answer:hover:not(:disabled) {
-  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35), 0 8px 26px -6px rgba(16, 185, 129, 0.7);
-}
-
-.btn-answer svg {
+.btn-answer-inner svg {
   flex-shrink: 0;
+}
+
+@keyframes loroGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
 }

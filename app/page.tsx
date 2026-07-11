@@ -910,8 +910,10 @@ export default function Page() {
               </button>
             </div>
             <button onClick={answerNow} className="btn-action btn-primary btn-answer">
-              <SparkleIcon />
-              Responder
+              <span className="btn-answer-inner">
+                <SparkleIcon />
+                Responder
+              </span>
             </button>
           </div>
         )}
