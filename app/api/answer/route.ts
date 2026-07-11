@@ -1,11 +1,22 @@
 export const runtime = "edge";
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+// ---------- Modelos disponibles ----------
+// El cliente manda { provider, model }. Cada provider usa su propia API key
+// (env var) y su propio endpoint de streaming. El default sigue siendo Gemini
+// 2.5 Flash (rápido y ya probado). Claude y OpenAI se activan cuando el usuario
+// carga su token en Vercel — si falta, se devuelve un error claro.
+type Provider = "gemini" | "anthropic" | "openai";
+
+// IDs de modelo overridables por env (útil sobre todo para OpenAI, cuyos IDs
+// cambian seguido): si la env está seteada, pisa el model pedido por el cliente.
+const GEMINI_MODEL_DEFAULT = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const ANTHROPIC_MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL || "";
+const OPENAI_MODEL_OVERRIDE = process.env.OPENAI_MODEL || "";
 
 const SYSTEM_PROMPT = `Sos EL ENTREVISTADO. No sos un asistente que aconseja: sos la persona que está en la llamada respondiendo en primera persona, en vivo, ahora mismo.
 
 Recibís:
-1. EMPRESA y PUESTO al que se está postulando (el contexto de la entrevista).
+1. EMPRESA y DESCRIPCIÓN DEL PUESTO al que se está postulando (el contexto de la entrevista).
 2. El PERFIL de la persona (su CV, experiencia, logros, notas).
 3. La transcripción reciente de la conversación.
 4. La última pregunta detectada, marcada como [PREGUNTA].
@@ -39,22 +50,41 @@ Usá la TRANSCRIPCIÓN para sonar como una conversación real: no repitas algo q
 - Profesional pero cercano, seguro sin sonar ensayado ni sobreactuado.
 
 ## Formato de salida (CLAVE: el candidato lee mientras habla y la respuesta va apareciendo de a poco)
-- El PRIMER bullet es una apertura fuerte y auto-suficiente que YA contesta el núcleo de la pregunta y se puede decir sola tal cual. Nunca empieces con relleno tipo "Bueno, primero..." o "Es una buena pregunta": el candidato empieza a leer ese bullet antes de que aparezca el resto.
-- Los bullets siguientes desarrollan y cierran, cada uno una o dos frases, continuando la idea como un único discurso cortado en pedazos fáciles de leer de un vistazo.
-- Largo VARIABLE según la pregunta: una factual se contesta en 1-2 bullets; una de comportamiento pide el arco completo (hasta 5). Nunca infles con relleno para llegar a un largo. Nunca te quedes a medias.
+- Arrancá con UNA frase de apertura completa y auto-suficiente (1-2 oraciones, SIN viñeta) que YA contesta el núcleo de la pregunta y se puede decir sola tal cual. Es lo primero que el candidato empieza a leer en voz alta, así que tiene que ser una respuesta directa, no un preámbulo. Nunca empieces con relleno tipo "Bueno, primero..." o "Es una buena pregunta".
+- Después de esa apertura, dejá una línea en blanco y seguí con viñetas (cada una arranca con "- ") que desarrollan y cierran: una o dos frases por viñeta, continuando la idea como un único discurso cortado en pedazos fáciles de leer de un vistazo.
+- Largo VARIABLE según la pregunta: una factual se contesta con la apertura y 1 viñeta; una de comportamiento pide el arco completo (hasta 4-5 viñetas). Nunca infles con relleno para llegar a un largo. Nunca te quedes a medias.
 - Todo en primera persona, listo para decir en voz alta tal cual — no son "ideas para desarrollar", son la respuesta misma ya hablada.
-- Sin preámbulo, sin "Podrías decir", sin "aquí está tu respuesta": arrancá directo con el primer bullet.
+- Sin preámbulo, sin "Podrías decir", sin "aquí está tu respuesta": arrancá directo con la frase de apertura.
 - Respondé en el idioma indicado en "## IDIOMA DE LA RESPUESTA" (puede diferir del idioma de la pregunta). Dentro de ese idioma, espejá el registro (tú/vos/usted) del entrevistador.
 
 ## Regla de oro sobre [PREGUNTA]
-Si ese campo tiene CUALQUIER texto —por corto, informal, mal transcrito o inesperado que sea, incluso si el PERFIL o la EMPRESA están vacíos— RESPONDÉLO IGUAL con lo que tengas. Nunca evalúes si "es lo bastante clara". El ÚNICO caso en que devolvés el bullet "· (esperando pregunta)" es cuando [PREGUNTA] dice literalmente "(ninguna aún)" porque no llegó nada. Nunca lo uses por dudar del contenido.`;
+Si ese campo tiene CUALQUIER texto —por corto, informal, mal transcrito o inesperado que sea, incluso si el PERFIL o la EMPRESA están vacíos— RESPONDÉLO IGUAL con lo que tengas. Nunca evalúes si "es lo bastante clara". El ÚNICO caso en que devolvés "(esperando pregunta)" es cuando [PREGUNTA] dice literalmente "(ninguna aún)" porque no llegó nada. Nunca lo uses por dudar del contenido.`;
+
+// ---------- Guard de origen ----------
+// Estos endpoints son pagos (LLM) y no tienen auth. Un guard de mismo-origen
+// bloquea el abuso trivial desde otros sitios en el navegador (que siempre
+// mandan Origin). NO es protección fuerte contra un atacante server-side:
+// para eso hace falta auth real + rate-limit (p.ej. Vercel KV / Upstash).
+function sameOriginOk(req: Request): boolean {
+  const origin = req.headers.get("origin");
+  if (!origin) return true; // sin Origin (native/server) — se permite
+  const host = req.headers.get("host");
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
+function resolveModel(provider: Provider, requested: string): string {
+  if (provider === "anthropic") return ANTHROPIC_MODEL_OVERRIDE || requested || "claude-opus-4-8";
+  if (provider === "openai") return OPENAI_MODEL_OVERRIDE || requested || "gpt-4o";
+  return GEMINI_MODEL_DEFAULT || requested || "gemini-2.5-flash";
+}
 
 export async function POST(req: Request) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return new Response("Falta GEMINI_API_KEY en las variables de entorno.", {
-      status: 500,
-    });
+  if (!sameOriginOk(req)) {
+    return new Response("Origen no permitido.", { status: 403 });
   }
 
   let body: {
@@ -64,6 +94,8 @@ export async function POST(req: Request) {
     answerLang?: string;
     transcript?: string;
     question?: string;
+    provider?: string;
+    model?: string;
   };
   try {
     body = await req.json();
@@ -71,9 +103,13 @@ export async function POST(req: Request) {
     return new Response("Body inválido.", { status: 400 });
   }
 
+  const provider: Provider =
+    body.provider === "anthropic" || body.provider === "openai" ? body.provider : "gemini";
+  const model = resolveModel(provider, (body.model || "").slice(0, 100));
+
   const profile = (body.profile || "").slice(0, 8000);
   const company = (body.company || "").slice(0, 200);
-  const role = (body.role || "").slice(0, 200);
+  const role = (body.role || "").slice(0, 2000);
   const transcript = (body.transcript || "").slice(0, 6000);
   const question = (body.question || "").slice(0, 1000);
   const answerLangLabel =
@@ -84,7 +120,7 @@ export async function POST(req: Request) {
   const userContent = `## EMPRESA
 ${company || "(sin especificar)"}
 
-## PUESTO AL QUE SE POSTULA
+## DESCRIPCIÓN DEL PUESTO
 ${role || "(sin especificar)"}
 
 ## PERFIL DEL CANDIDATO
@@ -99,58 +135,33 @@ ${transcript || "(vacío)"}
 ## ÚLTIMO PUNTO DETECTADO
 [PREGUNTA] ${question || "(ninguna aún)"}`;
 
-  const payload = {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: userContent,
-          },
-        ],
-      },
-    ],
-    systemInstruction: {
-      parts: [
-        {
-          text: SYSTEM_PROMPT,
-        },
-      ],
-    },
-    generationConfig: {
-      temperature: 0.4,
-      // Margen para que una respuesta de comportamiento completa no se corte a
-      // la mitad (el prompt pide largo variable y prohíbe quedarse a medias).
-      maxOutputTokens: 512,
-      // Desactiva el "thinking" extendido de 2.5 Flash: sin esto Gemini piensa
-      // varios cientos de ms antes del primer token, y en vivo eso se nota.
-      thinkingConfig: { thinkingBudget: 0 },
-    },
-  };
-
-  const upstream = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }
-  );
-
-  if (!upstream.ok || !upstream.body) {
-    const detail = await upstream.text().catch(() => "");
-    return new Response(`Gemini error: ${detail}`, { status: 502 });
+  try {
+    if (provider === "anthropic") return await streamAnthropic(model, userContent);
+    if (provider === "openai") return await streamOpenAI(model, userContent);
+    return await streamGemini(model, userContent);
+  } catch (err: any) {
+    return new Response(`Error del modelo: ${err?.message || "desconocido"}`, { status: 502 });
   }
+}
 
-  // Reenvía solo el texto de los candidatos de la API de Gemini como stream plano.
+// Envuelve un ReadableStream de texto plano con los headers correctos.
+function textStreamResponse(stream: ReadableStream) {
+  return new Response(stream, {
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
+}
+
+// Parser SSE genérico: lee el body upstream, parte por líneas "data:", y por
+// cada JSON extrae el texto con `extract`. Reenvía solo texto plano al cliente.
+function sseTextStream(
+  upstream: ReadableStream<Uint8Array>,
+  extract: (json: string) => string | null
+): ReadableStream {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  const reader = upstream.body.getReader();
+  const reader = upstream.getReader();
   let buffer = "";
-
-  const stream = new ReadableStream({
+  return new ReadableStream({
     async pull(controller) {
       const { done, value } = await reader.read();
       if (done) {
@@ -164,13 +175,10 @@ ${transcript || "(vacío)"}
         const trimmed = line.trim();
         if (!trimmed.startsWith("data:")) continue;
         const json = trimmed.slice(5).trim();
-        if (!json) continue;
+        if (!json || json === "[DONE]") continue;
         try {
-          const evt = JSON.parse(json);
-          const text = evt.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            controller.enqueue(encoder.encode(text));
-          }
+          const text = extract(json);
+          if (text) controller.enqueue(encoder.encode(text));
         } catch {
           // ignora fragmentos incompletos
         }
@@ -180,8 +188,120 @@ ${transcript || "(vacío)"}
       reader.cancel();
     },
   });
+}
 
-  return new Response(stream, {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+// ---------- Gemini ----------
+async function streamGemini(model: string, userContent: string): Promise<Response> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return new Response("Falta GEMINI_API_KEY en las variables de entorno.", { status: 500 });
+  }
+  const payload = {
+    contents: [{ role: "user", parts: [{ text: userContent }] }],
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    generationConfig: {
+      temperature: 0.4,
+      maxOutputTokens: 512,
+      // Desactiva el "thinking" extendido de 2.5 Flash: sin esto piensa varios
+      // cientos de ms antes del primer token, y en vivo eso se nota.
+      thinkingConfig: { thinkingBudget: 0 },
+    },
+  };
+  const upstream = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+  if (!upstream.ok || !upstream.body) {
+    const detail = await upstream.text().catch(() => "");
+    return new Response(`Gemini error: ${detail}`, { status: 502 });
+  }
+  return textStreamResponse(
+    sseTextStream(upstream.body, (json) => {
+      const evt = JSON.parse(json);
+      return evt.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+    })
+  );
+}
+
+// ---------- Anthropic (Claude) ----------
+async function streamAnthropic(model: string, userContent: string): Promise<Response> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return new Response(
+      "Falta ANTHROPIC_API_KEY en Vercel para usar Claude. Cargá el token o elegí otro modelo.",
+      { status: 500 }
+    );
+  }
+  const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 512,
+      temperature: 0.4,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userContent }],
+      stream: true,
+    }),
   });
+  if (!upstream.ok || !upstream.body) {
+    const detail = await upstream.text().catch(() => "");
+    return new Response(`Claude error: ${detail}`, { status: 502 });
+  }
+  return textStreamResponse(
+    sseTextStream(upstream.body, (json) => {
+      const evt = JSON.parse(json);
+      // Solo nos interesan los deltas de texto del bloque de contenido.
+      if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+        return evt.delta.text ?? null;
+      }
+      return null;
+    })
+  );
+}
+
+// ---------- OpenAI (GPT) ----------
+async function streamOpenAI(model: string, userContent: string): Promise<Response> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return new Response(
+      "Falta OPENAI_API_KEY en Vercel para usar GPT. Cargá el token o elegí otro modelo.",
+      { status: 500 }
+    );
+  }
+  const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.4,
+      max_tokens: 512,
+      stream: true,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userContent },
+      ],
+    }),
+  });
+  if (!upstream.ok || !upstream.body) {
+    const detail = await upstream.text().catch(() => "");
+    return new Response(`GPT error: ${detail}`, { status: 502 });
+  }
+  return textStreamResponse(
+    sseTextStream(upstream.body, (json) => {
+      const evt = JSON.parse(json);
+      return evt.choices?.[0]?.delta?.content ?? null;
+    })
+  );
 }

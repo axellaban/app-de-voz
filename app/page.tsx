@@ -14,6 +14,23 @@ type Lang = "es" | "en";
 const STT_LANG: Record<Lang, string> = { es: "es", en: "en" };
 const ANSWER_LANG: Record<Lang, "es" | "en"> = { es: "es", en: "en" };
 
+// ---------- Modelos de LLM ----------
+// El usuario elige el modelo (como el idioma). El default es Gemini 2.5 Flash
+// (rápido y ya probado). Claude y GPT se activan cuando el token está cargado
+// en Vercel; si falta, el backend devuelve un error claro. Los IDs de modelo se
+// pueden pisar por env var en el backend (ANTHROPIC_MODEL / OPENAI_MODEL).
+type Provider = "gemini" | "anthropic" | "openai";
+type ModelOption = { id: string; label: string; provider: Provider; model: string; tag: string };
+const MODELS: ModelOption[] = [
+  { id: "gemini-flash", label: "Gemini 2.5 Flash", provider: "gemini", model: "gemini-2.5-flash", tag: "Rápido · default" },
+  { id: "gemini-pro", label: "Gemini 2.5 Pro", provider: "gemini", model: "gemini-2.5-pro", tag: "Más preciso" },
+  { id: "claude-opus", label: "Claude Opus 4.8", provider: "anthropic", model: "claude-opus-4-8", tag: "Máxima calidad" },
+  { id: "claude-sonnet", label: "Claude Sonnet 5", provider: "anthropic", model: "claude-sonnet-5", tag: "Equilibrado" },
+  { id: "claude-haiku", label: "Claude Haiku 4.5", provider: "anthropic", model: "claude-haiku-4-5", tag: "Rápido" },
+  { id: "gpt", label: "GPT (OpenAI)", provider: "openai", model: "gpt-4o", tag: "OpenAI" },
+];
+const DEFAULT_MODEL_ID = MODELS[0].id;
+
 function buildDgUrl(sttLang: string): string {
   const params = new URLSearchParams({
     model: "nova-2",
@@ -81,6 +98,7 @@ export default function Page() {
   const [role, setRole] = useState("");
   const [profile, setProfile] = useState("");
   const [lang, setLang] = useState<Lang>("es");
+  const [modelId, setModelId] = useState<string>(DEFAULT_MODEL_ID);
   const [lines, setLines] = useState<Line[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [tab, setTab] = useState<"answer" | "transcript">("answer");
@@ -121,6 +139,11 @@ export default function Page() {
   const scrollT = useRef<HTMLDivElement | null>(null);
   const scrollA = useRef<HTMLDivElement | null>(null);
 
+  // Modelo elegido, siempre fresco (evita closures viejas en runGenerate).
+  const selectedModel = MODELS.find((m) => m.id === modelId) || MODELS[0];
+  const modelRef = useRef(selectedModel);
+  modelRef.current = selectedModel;
+
   // ---------- Detección iOS/Safari ----------
   // iOS Safari no soporta getDisplayMedia (captura de pestaña): solo mic.
   const [isIOS, setIsIOS] = useState(false);
@@ -160,14 +183,16 @@ export default function Page() {
       if (saved.company) setCompany(saved.company);
       if (saved.role) setRole(saved.role);
       if (saved.profile) setProfile(saved.profile);
+      // El modelo sí se restaura (preferencia persistente del usuario).
+      if (saved.modelId && MODELS.some((m) => m.id === saved.modelId)) setModelId(saved.modelId);
       // El idioma NO se restaura: el default siempre es español (se elige por sesión).
     } catch {}
   }, []);
   useEffect(() => {
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ company, role, profile }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ company, role, profile, modelId }));
     } catch {}
-  }, [company, role, profile]);
+  }, [company, role, profile, modelId]);
 
   // ---------- Generación ----------
   // Ejecuta el fetch/stream para una tarjeta ya asignada (id + controller ya
@@ -192,6 +217,8 @@ export default function Page() {
             company,
             role,
             answerLang: ANSWER_LANG[lang],
+            provider: modelRef.current.provider,
+            model: modelRef.current.model,
             transcript: transcriptRef.current.slice(-4000),
             question,
           }),
@@ -316,6 +343,16 @@ export default function Page() {
     fireIfNew(q, true);
     if (micModeRef.current) bumpCandidateTurn();
   }, [fireIfNew, bumpCandidateTurn]);
+
+  // Limpia respuestas y transcripción en pantalla (como el "Clear" de Parakeet),
+  // sin cortar la sesión: el Loro sigue escuchando.
+  const clearAll = useCallback(() => {
+    turnRef.current?.controller?.abort();
+    turnRef.current = null;
+    questionBufRef.current = "";
+    setAnswers([]);
+    setLines([]);
+  }, []);
 
   // ---------- Mensajes Deepgram ----------
   const onDgMessage = useCallback(
@@ -617,7 +654,7 @@ export default function Page() {
     <main className="app-container">
       <header className="brand-header">
         <div className="brand">
-          <span className="brand-title">CotorreadoAI 🦜</span>
+          <span className="brand-title">Loreado.ia 🦜</span>
         </div>
         <span className={`status-chip ${live ? "status-chip-live" : ""}`}>
           {status === "idle" && "en espera"}
@@ -629,7 +666,7 @@ export default function Page() {
 
       {!live && (
         <p className="tagline">
-          La cotorra escucha tu entrevista en tiempo real y te cotorrea respuestas. 🦜
+          El Loro escucha tu entrevista en tiempo real y te sopla las respuestas. 🦜
         </p>
       )}
 
@@ -657,6 +694,38 @@ export default function Page() {
               🇺🇸 English
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Selector de modelo de LLM */}
+      {!live && (
+        <div>
+          <label className="mono form-label" style={{ display: "block", marginBottom: 8 }}>
+            Modelo de IA
+          </label>
+          <div className="select-wrap">
+            <select
+              className="model-select"
+              value={modelId}
+              onChange={(e) => setModelId(e.target.value)}
+              disabled={connecting}
+              aria-label="Modelo de IA"
+            >
+              {MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label} — {m.tag}
+                </option>
+              ))}
+            </select>
+            <span className="select-caret" aria-hidden="true">▾</span>
+          </div>
+          {selectedModel.provider !== "gemini" && (
+            <p className="mono form-hint" style={{ marginTop: 6 }}>
+              {selectedModel.provider === "anthropic"
+                ? "Requiere ANTHROPIC_API_KEY cargada en Vercel."
+                : "Requiere OPENAI_API_KEY cargada en Vercel."}
+            </p>
+          )}
         </div>
       )}
 
@@ -703,31 +772,29 @@ export default function Page() {
           <label className="mono form-label">
             Contexto de la entrevista
           </label>
-          <div className="grid-responsive">
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label className="mono form-mini-label">
-                Empresa
-              </label>
-              <input
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Ej: Mercado Libre"
-                className="form-input"
-                disabled={connecting}
-              />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label className="mono form-mini-label">
-                Puesto / rol
-              </label>
-              <input
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="Ej: Frontend Sr."
-                className="form-input"
-                disabled={connecting}
-              />
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label className="mono form-mini-label">
+              Empresa
+            </label>
+            <input
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="Ej: Mercado Libre"
+              className="form-input"
+              disabled={connecting}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+            <label className="mono form-mini-label">
+              Descripción del puesto
+            </label>
+            <textarea
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="Pegá la descripción del puesto: responsabilidades, requisitos, seniority."
+              className="form-textarea form-textarea-sm"
+              disabled={connecting}
+            />
           </div>
           <label className="mono form-mini-label" style={{ marginTop: 4 }}>
             Tu perfil / CV
@@ -735,13 +802,13 @@ export default function Page() {
           <textarea
             value={profile}
             onChange={(e) => setProfile(e.target.value)}
-            placeholder="Pegá tu CV, experiencia o notas. La cotorra usará esto para responder."
+            placeholder="Pegá tu CV, experiencia o notas. El Loro usará esto para responder."
             className="form-textarea"
             disabled={connecting}
           />
           {(!company.trim() || !role.trim()) && (
             <p className="mono form-hint">
-              Completá empresa y puesto para respuestas mejor personalizadas.
+              Completá empresa y descripción del puesto para respuestas mejor personalizadas.
             </p>
           )}
         </div>
@@ -799,18 +866,23 @@ export default function Page() {
               ) : (
                 answers.map((a, index) => (
                   <div key={a.id} className={`answer-card ${index === 0 ? "answer-card-first" : ""}`}>
-                    <div className="mono answer-card-question">
-                      {a.question}
+                    <div className="answer-card-q-row">
+                      <span className="mono answer-card-label answer-card-label-q">💬 Pregunta</span>
+                      <span className="answer-card-question">{a.question}</span>
                     </div>
-                    <div className="answer-card-text">
-                      {a.text ? (
-                        // Colapsa líneas en blanco entre bullets: sin espacio extra.
-                        a.text.replace(/\n[ \t]*\n+/g, "\n").trim()
-                      ) : (
-                        <span className="mono answer-card-loading">
-                          generando…
-                        </span>
-                      )}
+                    <div className="answer-card-a-row">
+                      <span className="mono answer-card-label answer-card-label-a">⭐ Respuesta</span>
+                      <div className="answer-card-text">
+                        {a.text ? (
+                          // Colapsa líneas en blanco de más entre viñetas, pero conserva
+                          // el salto simple que separa la apertura de las viñetas.
+                          a.text.replace(/\n{3,}/g, "\n\n").trim()
+                        ) : (
+                          <span className="mono answer-card-loading">
+                            generando…
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
@@ -846,16 +918,21 @@ export default function Page() {
       <footer style={{ display: "flex", flexDirection: "column", gap: 8, position: "sticky", bottom: 0, paddingTop: 4, background: "var(--bg)" }}>
         {!live ? (
           <button onClick={start} disabled={connecting} className="btn-action btn-primary">
-            {connecting ? "Conectando… 🦜" : mode === "mic" ? "▶ Soltar cotorra (activar micrófono)" : "▶ Soltar cotorra (compartir pestaña)"}
+            {connecting ? "Conectando… 🦜" : mode === "mic" ? "▶ Soltar el Loro (activar micrófono)" : "▶ Soltar el Loro (compartir pestaña)"}
           </button>
         ) : (
-          <div className="grid-responsive" style={{ gap: 10 }}>
-            <button onClick={answerNow} className="btn-action btn-ghost">
-              Responder ahora
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <button onClick={answerNow} className="btn-action btn-primary">
+              ✦ Responder ahora
             </button>
-            <button onClick={stop} className="btn-action btn-stop">
-              ■ Detener
-            </button>
+            <div className="grid-responsive" style={{ gap: 10 }}>
+              <button onClick={clearAll} className="btn-action btn-ghost">
+                Limpiar
+              </button>
+              <button onClick={stop} className="btn-action btn-stop">
+                ■ Detener
+              </button>
+            </div>
           </div>
         )}
         {!live && (
