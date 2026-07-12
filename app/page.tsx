@@ -5,7 +5,16 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 type Status = "idle" | "connecting" | "live" | "error";
 type Mode = "mic" | "tab";
 type Line = { id: number; text: string; final: boolean };
-type Answer = { id: number; question: string; text: string; done: boolean };
+type Feedback = "up" | "down" | null;
+type Answer = { id: number; question: string; text: string; done: boolean; ts: number; feedback: Feedback };
+
+function fmtTime(ts: number): string {
+  try {
+    return new Date(ts).toLocaleTimeString("es-AR", { hour: "numeric", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
 
 // Ícono "mágico" (sparkle / auto-awesome) del botón de respuesta, como Parakeet.
 function SparkleIcon() {
@@ -95,6 +104,22 @@ function CopyIcon() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+function ThumbUpIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 10v12" />
+      <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a2.5 2.5 0 0 1 3 3z" />
+    </svg>
+  );
+}
+function ThumbDownIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 14V2" />
+      <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a2.5 2.5 0 0 1-3-3z" />
     </svg>
   );
 }
@@ -406,10 +431,10 @@ export default function Page() {
   const runGenerate = useCallback(
     async (id: number, question: string, controller: AbortController) => {
       setAnswers((prev) => {
-        const card: Answer = { id, question, text: "", done: false };
+        const card: Answer = { id, question, text: "", done: false, ts: Date.now(), feedback: null };
         return prev.some((a) => a.id === id)
           ? prev.map((a) => (a.id === id ? card : a))
-          : [card, ...prev].slice(0, 20);
+          : [...prev, card].slice(-20); // cronológico: nuevas abajo
       });
       setTab("answer");
       try {
@@ -474,6 +499,13 @@ export default function Page() {
     const controller = new AbortController();
     runGenerate(id, q, controller);
   }, [runGenerate]);
+
+  // Feedback 👍/👎 por respuesta (se togglea; por ahora solo estado local).
+  const setFeedback = useCallback((id: number, fb: "up" | "down") => {
+    setAnswers((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, feedback: a.feedback === fb ? null : fb } : a))
+    );
+  }, []);
 
   // Copia la respuesta al portapapeles con feedback breve.
   const copyAnswer = useCallback((id: number, text: string) => {
@@ -760,15 +792,28 @@ export default function Page() {
   useEffect(() => {
     scrollT.current?.scrollTo({ top: scrollT.current.scrollHeight });
   }, [lines]);
+  // Al aparecer/llenarse una respuesta nueva, bajamos el scroll hasta que su
+  // parte de arriba quede al tope del área, dejando la Q&A anterior arriba
+  // (como Parakeet). Depende también del texto de la última: cuando la card
+  // arranca vacía el contenedor todavía no es scrolleable; al llenarse, se
+  // reintenta. NO depende de `feedback`, así tocar 👍/👎 no mueve el scroll.
+  const lastAnswerText = answers.length ? answers[answers.length - 1].text : "";
   useEffect(() => {
-    scrollA.current?.scrollTo({ top: 0 });
-  }, [answers.length]);
+    const container = scrollA.current;
+    if (!container || answers.length === 0) return;
+    const last = container.lastElementChild as HTMLElement | null;
+    if (!last) return;
+    const cRect = container.getBoundingClientRect();
+    const lRect = last.getBoundingClientRect();
+    const delta = lRect.top - cRect.top;
+    if (delta > 1) container.scrollTo({ top: container.scrollTop + delta - 4, behavior: "smooth" });
+  }, [answers.length, lastAnswerText]);
 
   const live = status === "live";
   const connecting = status === "connecting";
 
   return (
-    <main className="app-container">
+    <main className={`app-container ${live ? "app-live" : ""}`}>
       <header className="brand-header">
         <div className="brand">
           <span className="brand-title">Loreado.ia 🦜</span>
@@ -963,7 +1008,7 @@ export default function Page() {
                 </p>
               ) : (
                 answers.map((a, index) => (
-                  <div key={a.id} className={`answer-card ${index === 0 ? "answer-card-first" : ""}`}>
+                  <div key={a.id} className={`answer-card ${index === answers.length - 1 ? "answer-card-current" : ""}`}>
                     {a.text && (
                       <div className="card-actions">
                         <button
@@ -994,6 +1039,27 @@ export default function Page() {
                         )}
                       </div>
                     </div>
+                    {a.text && (
+                      <div className="answer-footer">
+                        <span className="answer-footer-meta mono">Respuesta · {fmtTime(a.ts)}</span>
+                        <div className="fb-btns">
+                          <button
+                            className={`fb-btn ${a.feedback === "up" ? "fb-up" : ""}`}
+                            onClick={() => setFeedback(a.id, "up")}
+                            aria-label="Respuesta útil"
+                          >
+                            <ThumbUpIcon />
+                          </button>
+                          <button
+                            className={`fb-btn ${a.feedback === "down" ? "fb-down" : ""}`}
+                            onClick={() => setFeedback(a.id, "down")}
+                            aria-label="Respuesta no útil"
+                          >
+                            <ThumbDownIcon />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
