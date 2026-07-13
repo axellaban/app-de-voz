@@ -24,8 +24,8 @@ export default function Landing() {
         </div>
 
         <p className="landing-warn">
-          ⚠️ ESTAMOS EXPERIMENTANDO UN TRÁFICO INUSUALMENTE ALTO. NUESTROS SERVIDORES
-          ESTÁN OPERANDO AL LÍMITE DE SU CAPACIDAD.
+          ⚠️ Estamos experimentando una demanda excepcionalmente alta. Por favor, tené
+          paciencia mientras trabajamos en escalar nuestros sistemas.
         </p>
       </main>
     </div>
