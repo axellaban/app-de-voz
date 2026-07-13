@@ -969,6 +969,7 @@ input {
   max-width: 56rem;
   text-align: center;
   z-index: 1;
+  text-transform: uppercase; /* todo en mayúscula: rústico / anti-marketing */
 }
 
 .landing-title {
@@ -977,12 +978,13 @@ input {
   line-height: 1.08;
   letter-spacing: -0.02em;
   margin-bottom: 24px;
+  color: #fff;
 }
 
 .landing-sub {
   font-size: clamp(1.25rem, 4vw, 2.25rem);
   font-weight: 400;
-  color: #9ca3af;
+  color: #fff;
   margin-bottom: 64px;
 }
 
@@ -995,7 +997,7 @@ input {
 .landing-glow {
   position: absolute;
   inset: -8px;
-  border-radius: 14px;
+  border-radius: 0;
   /* Mismo efecto que el botón "Responder": halo de colores de loro que fluye. */
   background: linear-gradient(
     90deg,
@@ -1026,7 +1028,7 @@ input {
   font-weight: 700;
   font-size: clamp(1.15rem, 3vw, 1.5rem);
   padding: 18px 56px;
-  border-radius: 14px;
+  border-radius: 0; /* cuadrado */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1041,7 +1043,7 @@ input {
 }
 
 .landing-warn {
-  color: #dc2626;
+  color: #fff;
   font-size: clamp(10px, 2.2vw, 12px);
   font-weight: 600;
   max-width: 30rem;
