@@ -902,43 +902,30 @@ export default function Page() {
 
   return (
     <main className={`app-container ${live ? "app-live" : ""}`}>
-      <header className={`brand-header ${live ? "brand-header-live" : ""}`}>
-        {live ? (
-          <>
-            <div className="header-row">
-              <div className="brand">
-                <span className="brand-title">Loreado.IA 🦜</span>
-              </div>
-              <button
-                className="stop-x"
-                onClick={stop}
-                aria-label="Detener"
-                title="Detener"
-              >
-                ✕
-              </button>
-            </div>
+      <header className="brand-header">
+        <div className="brand">
+          <span className="brand-title">Loreado.IA 🦜</span>
+        </div>
+        <div className="header-right">
+          {live && (
             <div className="header-center">
               <span className="timer-pill sessions-pill" title="Sesiones gratis restantes">
-                🦜 {Math.max(0, FREE_SESSIONS - sessionsUsed)}/{FREE_SESSIONS}
+                {Math.max(0, FREE_SESSIONS - sessionsUsed)}/{FREE_SESSIONS}
               </span>
-              <span className="timer-pill">
+              <span className="timer-pill" title="Minutos gratis de esta sesión">
                 <ClockIcon />
-                {Math.ceil(remainingSec / 60)} mins <span className="timer-free">(Free)</span>
+                {Math.ceil(remainingSec / 60)} min
               </span>
             </div>
-          </>
-        ) : (
-          <>
-            <div className="brand">
-              <span className="brand-title">Loreado.IA 🦜</span>
-            </div>
-            <div className="header-actions">
-              {connecting && <span className="status-chip">conectando…</span>}
-              {status === "error" && <span className="status-chip">error</span>}
-            </div>
-          </>
-        )}
+          )}
+          {!live && connecting && <span className="status-chip">conectando…</span>}
+          {!live && status === "error" && <span className="status-chip">error</span>}
+          {live && (
+            <button className="stop-x" onClick={stop} aria-label="Detener" title="Detener">
+              ✕
+            </button>
+          )}
+        </div>
       </header>
 
       {!live && (
@@ -1231,7 +1218,7 @@ export default function Page() {
               Llegaste al límite de {FREE_SESSIONS} sesiones. Las APIs son caras y tuve que frenar
               el acceso gratuito para no fundirme.
             </p>
-            <p className="paywall-text paywall-cta">Sumate a la lista de espera para la versión PRO.</p>
+            <p className="paywall-text paywall-cta">Sumate a la lista de espera para acceso sin límites.</p>
             {emailSent ? (
               <div className="paywall-sent">Enviado ✔</div>
             ) : (

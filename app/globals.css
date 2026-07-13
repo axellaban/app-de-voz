@@ -828,37 +828,31 @@ input {
   gap: 8px;
 }
 
-/* En vivo el header pasa a 2 filas (marca+X arriba, pills abajo): así entra la
-   marca completa "Loreado.IA" + las 2 pills sin apretar en mobile. */
-.brand-header-live {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-}
-
-.header-row {
+/* Lado derecho del header en una sola fila: pills (sesiones + timer) + X. */
+.header-right {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
 }
 
 /* Pills del header (sesiones + timer), mismo formato estilo Parakeet. */
 .header-center {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
 .timer-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 13px;
+  gap: 5px;
+  padding: 6px 11px;
   border-radius: 999px;
   background: #eceef1;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
