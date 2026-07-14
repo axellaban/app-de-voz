@@ -411,17 +411,22 @@ export default function Page() {
   const modelRef = useRef(selectedModel);
   modelRef.current = selectedModel;
 
-  // ---------- Detección de mobile ----------
-  // En mobile (iOS y Android) "Pestaña" no tiene sentido: no hay pestañas de
-  // Meet/Zoom que compartir desde el propio celular, y iOS Safari ni siquiera
-  // soporta getDisplayMedia (captura de pestaña). Se usa directo micrófono.
-  const [isMobile, setIsMobile] = useState(false);
+  // ---------- Detección de mobile / Safari ----------
+  // "Pestaña" (captura de audio vía getDisplayMedia) no tiene sentido en dos
+  // casos: en mobile (iOS y Android) no hay pestañas de Meet/Zoom que
+  // compartir desde el propio celular; y en Safari —incluso de escritorio,
+  // en Mac— getDisplayMedia no soporta capturar audio (solo video), así que
+  // ahí "Pestaña" siempre termina en el error de "no se compartió audio". En
+  // ambos casos se usa directo micrófono.
+  const [noTabCapture, setNoTabCapture] = useState(false);
   useEffect(() => {
     const ua = navigator.userAgent || "";
     const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     const mobile = iOS || /Android|Mobi/.test(ua);
-    setIsMobile(mobile);
-    if (mobile) setMode("mic");
+    const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
+    const noTab = mobile || isSafari;
+    setNoTabCapture(noTab);
+    if (noTab) setMode("mic");
   }, []);
 
   // iOS suspende el AudioContext al bloquear pantalla o cambiar de app.
@@ -1055,10 +1060,10 @@ export default function Page() {
         </div>
       )}
 
-      {/* Selector de modo: solo en desktop. En mobile (iOS y Android) "Pestaña"
-          no tiene sentido — no hay pestañas de Meet/Zoom que compartir desde
-          el propio celular — así que se usa directamente el micrófono. */}
-      {!live && !isMobile && (
+      {/* Selector de modo: se oculta en mobile (iOS/Android) y en Safari
+          —incluso de escritorio—, donde "Pestaña" no tiene sentido o no
+          funciona; en esos casos se usa directamente el micrófono. */}
+      {!live && !noTabCapture && (
         <div className={`grid-responsive`}>
           <button
             className={`btn-select ${mode === "mic" ? "btn-select-active" : ""}`}
