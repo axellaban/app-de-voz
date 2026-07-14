@@ -29,6 +29,8 @@ export async function POST(req: Request) {
   }
   const apiKey = rawKey.trim().replace(/^["']|["']$/g, "");
 
+  // Camino seguro: token temporal (grant, TTL 60s). Requiere que la key tenga
+  // permiso para emitir grants (rol Member+ con scope adecuado).
   try {
     const r = await fetch("https://api.deepgram.com/v1/auth/grant", {
       method: "POST",
@@ -45,15 +47,13 @@ export async function POST(req: Request) {
         return Response.json({ token, scheme: "bearer", expires_in: j.expires_in ?? 60 });
       }
     }
-    const detail = (await r.text().catch(() => "")).slice(0, 200);
-    return Response.json(
-      { error: `No se pudo emitir el token temporal de Deepgram. ${detail}` },
-      { status: 502 }
-    );
-  } catch (e: any) {
-    return Response.json(
-      { error: `Error emitiendo token: ${e?.message || "desconocido"}` },
-      { status: 502 }
-    );
+    // Fallback: si la key NO puede emitir grants ("Insufficient permissions"),
+    // devolvemos la key directa para no romper la app. Sigue protegido por
+    // mismo-origen + rate-limit, pero la key llega al navegador. Para el camino
+    // seguro, crear en Deepgram una key con permiso de grant.
+  } catch {
+    // red caída al pedir grant → también caemos al fallback
   }
+
+  return Response.json({ token: apiKey, scheme: "token", fallback: true });
 }
