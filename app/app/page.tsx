@@ -411,14 +411,17 @@ export default function Page() {
   const modelRef = useRef(selectedModel);
   modelRef.current = selectedModel;
 
-  // ---------- Detección iOS/Safari ----------
-  // iOS Safari no soporta getDisplayMedia (captura de pestaña): solo mic.
-  const [isIOS, setIsIOS] = useState(false);
+  // ---------- Detección de mobile ----------
+  // En mobile (iOS y Android) "Pestaña" no tiene sentido: no hay pestañas de
+  // Meet/Zoom que compartir desde el propio celular, y iOS Safari ni siquiera
+  // soporta getDisplayMedia (captura de pestaña). Se usa directo micrófono.
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const ua = navigator.userAgent || "";
     const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    setIsIOS(iOS);
-    if (iOS) setMode("mic");
+    const mobile = iOS || /Android|Mobi/.test(ua);
+    setIsMobile(mobile);
+    if (mobile) setMode("mic");
   }, []);
 
   // iOS suspende el AudioContext al bloquear pantalla o cambiar de app.
@@ -1052,10 +1055,10 @@ export default function Page() {
         </div>
       )}
 
-      {/* Selector de modo: solo cuando hay más de una opción. En iOS "Pestaña"
-          no existe (el navegador no captura audio de pestaña), así que no tiene
-          sentido mostrar un selector de una sola opción — se usa micrófono. */}
-      {!live && !isIOS && (
+      {/* Selector de modo: solo en desktop. En mobile (iOS y Android) "Pestaña"
+          no tiene sentido — no hay pestañas de Meet/Zoom que compartir desde
+          el propio celular — así que se usa directamente el micrófono. */}
+      {!live && !isMobile && (
         <div className={`grid-responsive`}>
           <button
             className={`btn-select ${mode === "mic" ? "btn-select-active" : ""}`}
