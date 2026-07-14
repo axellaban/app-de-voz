@@ -15,6 +15,15 @@ export default function Landing() {
           El copiloto de IA que RRHH no quiere que uses.
         </h1>
 
+        <Image
+          src="/toby.gif"
+          alt="Toby de RRHH"
+          width={320}
+          height={240}
+          unoptimized
+          className="landing-sticker"
+        />
+
         <h2 className="landing-sub">Acceso beta cerrado.</h2>
 
         <div className="landing-btn-wrap">
@@ -28,17 +37,6 @@ export default function Landing() {
           ⚠️ Estamos experimentando una demanda excepcionalmente alta. Por favor, tené
           paciencia mientras trabajamos en escalar nuestros sistemas.
         </p>
-
-        <div className="landing-sticker">
-          <Image
-            src="/toby.gif"
-            alt="Toby de RRHH desaprobando"
-            width={150}
-            height={112}
-            unoptimized
-          />
-          <span className="landing-sticker-caption">RRHH viéndote usar esto</span>
-        </div>
       </main>
     </div>
   );

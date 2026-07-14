@@ -1100,25 +1100,9 @@ input {
 }
 
 .landing-sticker {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin-top: 40px;
-  text-transform: none;
-}
-
-.landing-sticker img {
-  border-radius: 10px;
-  border: 2px solid #fff;
-  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
-  transform: rotate(-3deg);
-}
-
-.landing-sticker-caption {
-  font-size: 11px;
-  color: #98a1ad;
-  letter-spacing: 0.04em;
+  width: min(320px, 70vw);
+  height: auto;
+  margin: 8px 0 24px;
 }
 
 /* ===================== Paywall / lista de espera ===================== */
