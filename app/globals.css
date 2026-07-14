@@ -850,7 +850,8 @@ input {
   gap: 5px;
   padding: 6px 11px;
   border-radius: 999px;
-  background: #eceef1;
+  background: #fff;
+  border: 1px solid #e0e2e7;
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
