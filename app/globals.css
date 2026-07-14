@@ -1084,14 +1084,14 @@ input {
 
 .landing-warn {
   color: #ef4444;
-  font-size: clamp(11px, 2.5vw, 13px);
+  font-size: clamp(10px, 2.6vw, 13px);
   font-weight: 400;
   text-transform: none;
-  max-width: 24rem;
+  max-width: 34rem;
   letter-spacing: 0.01em;
   line-height: 1.5;
   margin: 36px auto 0;
-  padding: 0 12px;
+  padding: 0 4px;
   text-align: center;
   opacity: 0.9;
 }
