@@ -103,50 +103,107 @@ limitaciones (eso genera más confianza que cualquier promesa), pedir feedback
 en vez de vender, y UN solo link. Adaptar el tono a cada comunidad — nunca
 pegar el mismo texto dos veces (los mods y los usuarios lo huelen).
 
-## Versión A — foro/comunidad de búsqueda laboral (tono ayuda genuina)
+**Tracking por canal**: agregar `?ref=nombre` al link en cada lugar
+(ej. `https://copiloto-mvp.vercel.app?ref=devsarg`). PostHog captura la URL
+completa del pageview, así que se ve qué comunidad convierte sin tocar código.
 
-> **Hice una herramienta gratis que te sopla las respuestas en las entrevistas (en vivo) — busco feedback**
->
-> Hola gente. Hace unos meses estuve del lado feo de las entrevistas y me
-> pasaba algo muy puntual: sabía las respuestas, pero en el momento me
-> quedaba en blanco.
->
-> Así que me hice una herramienta para mí y la termino de pulir para
-> compartirla: escucha la entrevista en tiempo real (por el mic del celu o
-> el audio del Meet), transcribe, y cuando el entrevistador termina la
-> pregunta apretás un botón y te aparece una respuesta armada con TU CV
-> — no inventa experiencia que no tenés, responde con lo tuyo.
->
-> Es gratis y sin registro. No guarda nada: tu CV queda en tu navegador,
-> el audio no se almacena en ningún lado. No hay empresa atrás, soy una
-> persona con dos API keys y un fin de semana largo.
->
-> Limitaciones honestas: es una web (no es "indetectable" ni pretende
-> serlo), anda mejor en Chrome, y las sesiones gratis son limitadas porque
-> las APIs las pago yo.
->
-> Si están buscando laburo y la prueban en una entrevista real, me
-> encantaría saber qué respondió mal: [URL]
+**Secuencia**: un canal por vez. Semana 1: r/devsarg (lunes 10-12hs, quedarse
+2 horas respondiendo todo) + Sysarmy/Discords. Semana 2: grupos de
+Facebook/Telegram de empleo + comunidades de egresados de bootcamps. Todo el
+tiempo: responder hilos existentes ("me quedo en blanco", "entrevista en
+inglés") con la plantilla de comentario. El que convierte se repite; el que
+no, se abandona.
 
-## Versión B — comunidad tech/IA (tono builder, show don't tell)
+## 1. r/devsarg — el tiro de la semana 1 (`?ref=devsarg`)
 
-> **Weekend build: copiloto de entrevistas en tiempo real (Deepgram + Gemini), gratis, sin login**
+Título (elegir uno):
+- *"Me cansé de quedarme en blanco en las entrevistas en inglés, así que me hice un copiloto de IA en tiempo real. Es gratis y sin registro — vengan a romperlo"*
+- *"Weekend build: una IA que escucha tu entrevista y te sopla las respuestas en ~1.5s. Gratis, la pago yo, busco feedback"*
+
+> Hola gente. Estuve en búsqueda hace unos meses y me pasaba siempre lo
+> mismo: sabía la respuesta, pero en el momento —sobre todo en las
+> entrevistas en inglés para remoto— me quedaba en blanco.
 >
-> Armé esto para un amigo que se quedaba en blanco en las entrevistas y se
-> me fue de las manos, así que lo dejo abierto: transcripción streaming de
-> la llamada + respuestas generadas en ~1.5s ancladas en tu CV, todo en
-> español (y en inglés si la entrevista es en inglés).
+> Así que me armé esto y lo dejo abierto: escucha la entrevista en vivo
+> (mic del celu o audio de la pestaña del Meet), transcribe en streaming,
+> y cuando el entrevistador termina la pregunta tocás un botón y te
+> aparece la respuesta armada con TU CV. No inventa experiencia: tiene
+> prohibido bluffear, responde con lo tuyo o te sugiere reconocer lo que
+> no sabés y puentear.
 >
-> Stack por si a alguien le interesa: audio por AudioWorklet → WebSocket a
-> Deepgram Nova-2 → Gemini Flash streameando bullets. Sin base de datos,
-> sin login, el CV vive en localStorage. El costo lo banco yo, por eso hay
-> cuota gratis.
+> Stack por si les interesa: AudioWorklet → WebSocket a Deepgram Nova-2 →
+> Gemini Flash streameando bullets. Sin base de datos, sin login: el CV
+> vive en tu localStorage y el audio no se guarda en ningún lado. Lo
+> divertido fue la latencia: fin de pregunta → primera palabra en pantalla
+> en menos de 2 segundos, porque una respuesta que llega tarde es peor
+> que nada.
 >
-> Lo interesante técnicamente fue la latencia: fin de pregunta → primera
-> palabra en pantalla en menos de 2 segundos, porque leer una respuesta
-> que llega tarde es peor que no tener nada.
+> Limitaciones honestas: es una web común (no es "indetectable" ni
+> pretende serlo), anda mejor en Chrome, y hay cuota gratis porque las
+> APIs las pago de mi bolsillo.
 >
-> Probalo y rompelo, me sirve cada bug: [URL]
+> Ya sé que viene el comentario de "esto es trampa" — lo discutimos abajo,
+> tengo mi postura pero es válido el debate.
+>
+> Si tenés una entrevista esta semana, probalo en serio y contame qué
+> respondió mal: https://copiloto-mvp.vercel.app?ref=devsarg
+
+Cuándo: lunes 10-12hs. Quedarse las primeras 2 horas respondiendo TODO.
+
+## 2. Slack de Sysarmy / Discords de devs (`?ref=sysarmy`)
+
+Tono de mensaje al pasar, no de lanzamiento. Si preguntan, ahí se desarrolla.
+
+> Che, me hice una herramienta para no quedarme en blanco en las
+> entrevistas (las de inglés sobre todo): escucha la llamada y te va
+> soplando las respuestas en tiempo real, ancladas en tu CV. Gratis, sin
+> registro, el costo lo banco yo así que hay cuota. Si alguno está en
+> proceso y la quiere probar en una entrevista real, me sirve muchísimo el
+> feedback: https://copiloto-mvp.vercel.app?ref=sysarmy
+
+## 3. Grupos de Facebook/Telegram de empleo — semana 2, cero jerga (`?ref=empleos`)
+
+> Hola! Comparto algo que hice y que quizás le sirva a alguien que esté en
+> entrevistas. A mí me pasaba que me preparaba un montón, pero en el
+> momento los nervios me ganaban y me olvidaba de todo.
+>
+> Es una página gratis (no hay que instalar nada ni registrarse): le pegás
+> tu CV, la dejás escuchando la entrevista desde el celular, y cuando te
+> hacen una pregunta apretás un botón y te muestra una respuesta armada
+> con tu propia experiencia, para que la leas con tus palabras. Funciona
+> en español y también si la entrevista es en inglés.
+>
+> No guarda nada tuyo: ni el CV ni el audio quedan en ningún lado. La hice
+> yo solo y la pago yo, por eso las sesiones gratis son limitadas.
+>
+> Si la usan en una entrevista de verdad me encantaría que me cuenten cómo
+> les fue: https://copiloto-mvp.vercel.app?ref=empleos
+
+## 4. Comunidades de egresados de bootcamps (`?ref=bootcamp`)
+
+> Para los que están en su primer proceso de selección: hice una
+> herramienta gratis que te acompaña EN la entrevista. Escucha la llamada
+> en tiempo real y cuando te preguntan algo te arma la respuesta con tu CV
+> y el aviso del puesto — incluida la temida "contame de vos" y las
+> entrevistas en inglés (te sopla en inglés si la entrevista es en inglés).
+>
+> Sin registro, sin instalar nada, tu CV no sale de tu navegador. La hice
+> porque a un amigo le pasaba que sabía todo pero se bloqueaba. Las
+> sesiones gratis son limitadas porque las APIs las pago yo.
+>
+> Ojo: no reemplaza prepararse — es la red de seguridad para el bloqueo.
+> https://copiloto-mvp.vercel.app?ref=bootcamp
+
+## 5. Plantilla de comentario para hilos existentes (`?ref=hilo`)
+
+Para responder en hilos tipo *"me quedo en blanco"*, *"pánico a la
+entrevista en inglés"*. Corto, con disclosure de creador siempre, y
+adaptando la primera frase al hilo concreto:
+
+> Me pasaba igual, y terminé haciéndome una herramienta para eso (aviso:
+> la hice yo, es gratis y sin registro). Escucha la entrevista y te va
+> soplando las respuestas armadas con tu CV en tiempo real. Por si te
+> sirve para la próxima: https://copiloto-mvp.vercel.app?ref=hilo
 
 ## FAQ defensivo — respuestas para los comentarios que van a venir
 
