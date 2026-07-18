@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { track } from "../lib/track";
+import { track, identify } from "../lib/track";
 
 type Status = "idle" | "connecting" | "live" | "error";
 type Mode = "mic" | "tab";
@@ -508,6 +508,7 @@ export default function Page() {
           : [...prev, card].slice(-20); // cronológico: nuevas abajo
       });
       setTab("answer");
+      const startedAt = Date.now();
       try {
         const res = await fetch("/api/answer", {
           method: "POST",
@@ -539,6 +540,7 @@ export default function Page() {
                 : a
             )
           );
+          track("answer_failed", { reason: detail || "http_error", duration_ms: Date.now() - startedAt });
           return;
         }
         const reader = res.body.getReader();
@@ -560,12 +562,13 @@ export default function Page() {
           return runGenerate(id, question, controller, attempt + 1);
         }
         setAnswers((prev) => prev.map((a) => (a.id === id ? { ...a, done: true } : a)));
-        track("answer_generated", { model: modelRef.current.model });
+        track("answer_generated", { model: modelRef.current.model, duration_ms: Date.now() - startedAt });
       } catch (err: any) {
         if (err?.name === "AbortError") return;
         setAnswers((prev) =>
           prev.map((a) => (a.id === id ? { ...a, text: "· Error de red.", done: true } : a))
         );
+        track("answer_failed", { reason: err?.message || "network_error", duration_ms: Date.now() - startedAt });
       }
     },
     [profile, company, role, lang]
@@ -653,6 +656,7 @@ export default function Page() {
       if (r.ok && j.ok) {
         setEmailSent(true);
         track("waitlist_submit");
+        identify(em, { email: em });
       } else {
         setEmailError(j.error || "No se pudo enviar. Probá de nuevo.");
       }

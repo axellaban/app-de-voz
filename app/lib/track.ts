@@ -15,6 +15,7 @@ export type FunnelEvent =
   | "session_error"
   | "answer_requested"
   | "answer_generated"
+  | "answer_failed"
   | "answer_feedback"
   | "answer_copied"
   | "model_changed"
@@ -33,6 +34,17 @@ export function track(event: FunnelEvent, props?: Record<string, string | number
   }
   try {
     if (posthog.__loaded) posthog.capture(event, props);
+  } catch {
+    // no-op
+  }
+}
+
+// Liga el distinct_id anónimo actual a una identidad real (hoy, el único dato
+// que tenemos es el email de la waitlist). A partir de acá los eventos previos
+// y futuros de este navegador quedan bajo esa persona en PostHog.
+export function identify(distinctId: string, props?: Record<string, string>) {
+  try {
+    if (posthog.__loaded) posthog.identify(distinctId, props);
   } catch {
     // no-op
   }
