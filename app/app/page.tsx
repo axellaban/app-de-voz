@@ -576,6 +576,7 @@ export default function Page() {
   // "Responder ahora" se genera una respuesta sobre lo último dicho. La app
   // NO responde sola mientras la persona habla; solo transcribe.
   const answerNow = useCallback(() => {
+    track("answer_requested");
     // Aborta una respuesta en curso para no encimar dos generaciones. Si esa
     // respuesta todavía estaba vacía (no llegó ni el primer token), sacamos su
     // tarjeta para que no quede colgada en pantalla al reintentar.

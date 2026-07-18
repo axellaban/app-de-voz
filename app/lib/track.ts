@@ -13,6 +13,7 @@ export type FunnelEvent =
   | "session_start"
   | "session_stopped"
   | "session_error"
+  | "answer_requested"
   | "answer_generated"
   | "answer_feedback"
   | "answer_copied"
