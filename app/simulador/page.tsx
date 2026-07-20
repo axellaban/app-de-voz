@@ -377,6 +377,11 @@ export default function SimuladorPage() {
   const historyRef = useRef<HistoryItem[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const questionRef = useRef("");
+  // Texto de la pregunta ya "dicho" en voz alta: se revela palabra por palabra
+  // al ritmo del audio, como subtítulos.
+  const [spokenQuestion, setSpokenQuestion] = useState("");
+  const spokenBaseRef = useRef("");
+  const revealTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState("");
   const currentAnswerRef = useRef("");
@@ -461,6 +466,31 @@ export default function SimuladorPage() {
   }, [company, role, profile, modelId, lang, interviewType]);
 
   // ---------- Timers del turno ----------
+
+  const clearRevealTimer = () => {
+    if (revealTimerRef.current) {
+      clearInterval(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  };
+
+  // Revela las palabras de una oración repartidas en su duración real de audio.
+  const startReveal = (text: string, durationSec: number) => {
+    clearRevealTimer();
+    const base = spokenBaseRef.current;
+    spokenBaseRef.current = base ? `${base} ${text}` : text;
+    const words = text.split(/\s+/).filter(Boolean);
+    if (!words.length) return;
+    setSpokenQuestion(base);
+    const stepMs = Math.max(40, (durationSec * 1000) / (words.length + 1));
+    let i = 0;
+    revealTimerRef.current = setInterval(() => {
+      i += 1;
+      const partial = words.slice(0, i).join(" ");
+      setSpokenQuestion(base ? `${base} ${partial}` : partial);
+      if (i >= words.length) clearRevealTimer();
+    }, stepMs);
+  };
 
   const clearTurnTimers = () => {
     if (silenceTimerRef.current) {
@@ -619,6 +649,9 @@ export default function SimuladorPage() {
     setPhaseBoth("asking");
     setCurrentQuestion("");
     questionRef.current = "";
+    clearRevealTimer();
+    setSpokenQuestion("");
+    spokenBaseRef.current = "";
 
     const ctx = audioCtxRef.current;
     if (!ctx) return;
@@ -633,11 +666,20 @@ export default function SimuladorPage() {
     queue.onStart = () => {
       if (phaseRef.current === "asking") setPhaseBoth("speaking");
     };
+    queue.onChunkStart = (text, durationSec) => startReveal(text, durationSec);
     queue.onError = () => {
       ttsFailed = true;
       track("sim_tts_error");
+      // Sin voz no hay ritmo que seguir: mostrar el texto completo.
+      clearRevealTimer();
+      setSpokenQuestion(questionRef.current);
+      spokenBaseRef.current = questionRef.current;
     };
     queue.onAllEnded = () => {
+      // Terminó el audio: asegurar el texto completo en pantalla.
+      clearRevealTimer();
+      setSpokenQuestion(questionRef.current);
+      spokenBaseRef.current = questionRef.current;
       // Si el TTS falló, dar tiempo a leer la pregunta en pantalla en vez de
       // pasar a escuchar de inmediato. El margen de 300ms deja drenar el
       // parlante antes de reabrir el mic (anti-eco).
@@ -748,6 +790,7 @@ export default function SimuladorPage() {
   const cleanupMedia = () => {
     intentionalCloseRef.current = true;
     clearTurnTimers();
+    clearRevealTimer();
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
@@ -828,31 +871,39 @@ export default function SimuladorPage() {
 
   const fetchFeedback = async (finalHistory: HistoryItem[]) => {
     setIsGeneratingFeedback(true);
+    setError("");
     setPhaseBoth("feedback");
-    try {
-      const res = await fetch("/api/simulador", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "feedback",
-          profile,
-          company,
-          role,
-          interviewType,
-          answerLang: sessionLangRef.current,
-          provider: selectedModel.provider,
-          model: selectedModel.model,
-          history: finalHistory,
-        }),
-      });
-      if (!res.ok) throw new Error("No se pudo obtener el reporte de feedback.");
-      const report: FeedbackReport = await res.json();
-      setFeedbackReport(report);
-      setIsGeneratingFeedback(false);
-      track("sim_feedback_shown", { score: report?.score ?? 0 });
-    } catch (err: any) {
-      setIsGeneratingFeedback(false);
-      setError(err?.message || "Error al procesar el feedback.");
+    // Un reintento automático: la generación es larga y en mobile la red es
+    // menos estable.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch("/api/simulador", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "feedback",
+            profile,
+            company,
+            role,
+            interviewType,
+            answerLang: sessionLangRef.current,
+            provider: selectedModel.provider,
+            model: selectedModel.model,
+            history: finalHistory,
+          }),
+        });
+        if (!res.ok) throw new Error("No se pudo obtener el reporte de feedback.");
+        const report: FeedbackReport = await res.json();
+        setFeedbackReport(report);
+        setIsGeneratingFeedback(false);
+        track("sim_feedback_shown", { score: report?.score ?? 0 });
+        return;
+      } catch (err: any) {
+        if (attempt === 0) continue;
+        setIsGeneratingFeedback(false);
+        setError(err?.message || "Error al procesar el feedback.");
+        track("session_error", { where: "sim_feedback" });
+      }
     }
   };
 
@@ -1028,7 +1079,7 @@ export default function SimuladorPage() {
   useEffect(() => {
     const el = chatBodyRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [history, currentQuestion, currentAnswer, lines, phase, confirmCountdown, connectStep]);
+  }, [history, currentQuestion, spokenQuestion, currentAnswer, lines, phase, confirmCountdown, connectStep]);
 
   const CONNECT_STEPS = ["Preparando tu sala de entrevista", "Cargando tu contexto y CV", "Generando la primera pregunta"];
   const showSteps = phase === "connecting" || (phase === "asking" && history.length === 0 && !currentQuestion);
@@ -1296,15 +1347,20 @@ export default function SimuladorPage() {
                   </div>
                 ))}
 
-                {phase === "asking" && !currentQuestion && !showSteps && (
-                  <div className="sim-bubble sim-bubble-q sim-bubble-typing" aria-label="El entrevistador está escribiendo">
+                {(phase === "asking" || phase === "speaking") && !spokenQuestion && !showSteps && (
+                  <div className="sim-bubble sim-bubble-q sim-bubble-typing" aria-label="El entrevistador está por hablar">
                     <span />
                     <span />
                     <span />
                   </div>
                 )}
 
-                {currentQuestion && <div className="sim-bubble sim-bubble-q">{currentQuestion}</div>}
+                {/* Mientras habla, el texto se revela al ritmo de la voz; después queda completo. */}
+                {(phase === "asking" || phase === "speaking" ? spokenQuestion : currentQuestion) && (
+                  <div className="sim-bubble sim-bubble-q">
+                    {phase === "asking" || phase === "speaking" ? spokenQuestion : currentQuestion}
+                  </div>
+                )}
 
                 {isListening && (currentAnswer || interim) && (
                   <div className="sim-bubble sim-bubble-a">
@@ -1313,10 +1369,8 @@ export default function SimuladorPage() {
                   </div>
                 )}
 
-                {phase === "listening" && !currentAnswer && !interim && (
-                  <div className="sim-chat-hint">
-                    {micOn ? "🎙 Te escuchamos — respondé hablando" : "Micrófono silenciado — activalo para responder"}
-                  </div>
+                {phase === "listening" && !micOn && (
+                  <div className="sim-chat-hint">Micrófono silenciado — activalo para responder</div>
                 )}
 
                 {phase === "confirming" && (
@@ -1343,14 +1397,20 @@ export default function SimuladorPage() {
               <div className="sim-loading-spinner" />
               <h2 className="mono" style={{ fontSize: 16, fontWeight: 700 }}>Generando reporte de feedback…</h2>
               <p className="tagline" style={{ maxWidth: 360 }}>
-                El Coach de IA está evaluando tus respuestas en base a la señal, fit cultural y claridad de
+                El Loro de IA está evaluando tus respuestas en base a la señal, fit cultural y claridad de
                 comunicación. Esto demora unos segundos.
               </p>
             </div>
           ) : error && !feedbackReport ? (
             <div className="sim-loading-feedback">
               <div className="mono sim-error-box">⚠️ {error}</div>
-              <button onClick={() => setPhaseBoth("setup")} className="btn-action btn-primary">
+              <button
+                onClick={() => void fetchFeedback(historyRef.current)}
+                className="btn-action btn-primary"
+              >
+                🔄 Reintentar reporte
+              </button>
+              <button onClick={() => setPhaseBoth("setup")} className="clear-pill mono">
                 Volver al inicio
               </button>
             </div>
@@ -1362,7 +1422,7 @@ export default function SimuladorPage() {
               </div>
 
               <div className="sim-card">
-                <div className="sim-card-header">📊 Resumen del Coach</div>
+                <div className="sim-card-header">📊 Resumen del Loro</div>
                 <div className="sim-card-body">
                   <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "var(--ink)" }}>{feedbackReport?.summary}</p>
                 </div>
@@ -1407,7 +1467,7 @@ export default function SimuladorPage() {
                       <p className="sim-report-val" style={{ color: "var(--ink-dim)" }}>{q.answer}</p>
                     </div>
                     <div className="sim-report-row">
-                      <span className="sim-report-label">Análisis del Coach</span>
+                      <span className="sim-report-label">Análisis del Loro</span>
                       <p className="sim-report-val">{q.analysis}</p>
                     </div>
                     <div className="sim-report-row">

@@ -346,6 +346,20 @@ async function streamOpenAI(models: string[], systemPrompt: string, userContent:
   return new Response(`GPT error: ${detail}`, { status: 502 });
 }
 
+// Los modelos a veces desobedecen y envuelven el JSON en fences ```json ...```
+// o le anteponen texto: limpiar antes de parsear para no tirar el reporte.
+function parseModelJson(text: string): unknown {
+  const cleaned = (text || "").trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
+    throw new Error("JSON inválido del modelo");
+  }
+}
+
 async function getFeedback(
   provider: Provider,
   models: string[],
@@ -374,7 +388,7 @@ async function getFeedback(
       });
       if (res.ok) {
         const j = await res.json();
-        return Response.json(JSON.parse(j.choices?.[0]?.message?.content || "{}"));
+        return Response.json(parseModelJson(j.choices?.[0]?.message?.content || "{}"));
       }
       detail = await res.text().catch(() => "");
     }
@@ -402,7 +416,7 @@ async function getFeedback(
       });
       if (res.ok) {
         const j = await res.json();
-        return Response.json(JSON.parse(j.content?.[0]?.text || "{}"));
+        return Response.json(parseModelJson(j.content?.[0]?.text || "{}"));
       }
       detail = await res.text().catch(() => "");
     }
@@ -431,7 +445,7 @@ async function getFeedback(
     );
     if (res.ok) {
       const j = await res.json();
-      return Response.json(JSON.parse(j.candidates?.[0]?.content?.parts?.[0]?.text || "{}"));
+      return Response.json(parseModelJson(j.candidates?.[0]?.content?.parts?.[0]?.text || "{}"));
     }
     detail = await res.text().catch(() => "");
   }

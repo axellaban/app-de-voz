@@ -37,6 +37,9 @@ export class TtsQueue {
   private hadError = false;
 
   onStart?: () => void;
+  // Se dispara al empezar a sonar cada oración, con su duración real:
+  // permite revelar el texto en pantalla sincronizado con la voz.
+  onChunkStart?: (text: string, durationSec: number) => void;
   onAllEnded?: () => void;
   onError?: () => void;
   private started = false;
@@ -116,6 +119,7 @@ export class TtsQueue {
         this.started = true;
         this.onStart?.();
       }
+      this.onChunkStart?.(item.text, buffer.duration);
       await new Promise<void>((resolve) => {
         const source = this.ctx.createBufferSource();
         source.buffer = buffer;
