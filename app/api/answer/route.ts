@@ -155,6 +155,22 @@ ${transcript || "(vacío)"}
   }
 }
 
+// Timeout duro para el fetch inicial a cada provider. Sin esto, si la conexión
+// tarda en establecerse (típico en la primera invocación "fría" de la función
+// Edge hacia un host que no tocó antes), el fetch queda colgado sin límite: la
+// tarjeta se queda en "generando…" para siempre y el usuario tiene que
+// adivinar que hay que tocar "Responder" de nuevo. Al abortar rápido, cae al
+// siguiente modelo del fallback en el mismo click en vez de colgarse.
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Envuelve un ReadableStream de texto plano con los headers correctos.
 function textStreamResponse(stream: ReadableStream) {
   return new Response(stream, {
@@ -221,23 +237,28 @@ async function streamGemini(models: string[], userContent: string): Promise<Resp
   let detail = "";
   for (const model of models) {
     if (!model) continue;
-    const upstream = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }
-    );
-    if (upstream.ok && upstream.body) {
-      return textStreamResponse(
-        sseTextStream(upstream.body, (json) => {
-          const evt = JSON.parse(json);
-          return evt.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
-        })
+    try {
+      const upstream = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+        10_000
       );
+      if (upstream.ok && upstream.body) {
+        return textStreamResponse(
+          sseTextStream(upstream.body, (json) => {
+            const evt = JSON.parse(json);
+            return evt.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+          })
+        );
+      }
+      detail = await upstream.text().catch(() => "");
+    } catch (err: any) {
+      detail = err?.name === "AbortError" ? "timeout conectando con Gemini" : err?.message || "error de red";
     }
-    detail = await upstream.text().catch(() => "");
   }
   return new Response(`Gemini error: ${detail}`, { status: 502 });
 }
@@ -254,35 +275,43 @@ async function streamAnthropic(models: string[], userContent: string): Promise<R
   let detail = "";
   for (const model of models) {
     if (!model) continue;
-    const upstream = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 512,
-        temperature: 0.4,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userContent }],
-        stream: true,
-      }),
-    });
-    if (upstream.ok && upstream.body) {
-      return textStreamResponse(
-        sseTextStream(upstream.body, (json) => {
-          const evt = JSON.parse(json);
-          // Solo nos interesan los deltas de texto del bloque de contenido.
-          if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
-            return evt.delta.text ?? null;
-          }
-          return null;
-        })
+    try {
+      const upstream = await fetchWithTimeout(
+        "https://api.anthropic.com/v1/messages",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 512,
+            temperature: 0.4,
+            system: SYSTEM_PROMPT,
+            messages: [{ role: "user", content: userContent }],
+            stream: true,
+          }),
+        },
+        10_000
       );
+      if (upstream.ok && upstream.body) {
+        return textStreamResponse(
+          sseTextStream(upstream.body, (json) => {
+            const evt = JSON.parse(json);
+            // Solo nos interesan los deltas de texto del bloque de contenido.
+            if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+              return evt.delta.text ?? null;
+            }
+            return null;
+          })
+        );
+      }
+      detail = await upstream.text().catch(() => "");
+    } catch (err: any) {
+      detail = err?.name === "AbortError" ? "timeout conectando con Claude" : err?.message || "error de red";
     }
-    detail = await upstream.text().catch(() => "");
   }
   return new Response(`Claude error: ${detail}`, { status: 502 });
 }
@@ -318,23 +347,31 @@ async function streamOpenAI(models: string[], userContent: string): Promise<Resp
       reqBody.max_tokens = 512;
       reqBody.temperature = 0.4;
     }
-    const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(reqBody),
-    });
-    if (upstream.ok && upstream.body) {
-      return textStreamResponse(
-        sseTextStream(upstream.body, (json) => {
-          const evt = JSON.parse(json);
-          return evt.choices?.[0]?.delta?.content ?? null;
-        })
+    try {
+      const upstream = await fetchWithTimeout(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(reqBody),
+        },
+        10_000
       );
+      if (upstream.ok && upstream.body) {
+        return textStreamResponse(
+          sseTextStream(upstream.body, (json) => {
+            const evt = JSON.parse(json);
+            return evt.choices?.[0]?.delta?.content ?? null;
+          })
+        );
+      }
+      detail = await upstream.text().catch(() => "");
+    } catch (err: any) {
+      detail = err?.name === "AbortError" ? "timeout conectando con OpenAI" : err?.message || "error de red";
     }
-    detail = await upstream.text().catch(() => "");
   }
   return new Response(`GPT error: ${detail}`, { status: 502 });
 }
