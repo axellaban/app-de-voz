@@ -26,7 +26,7 @@ Reglas críticas:
 6. Responde SIEMPRE en el idioma indicado en "## IDIOMA DE LA RESPUESTA".
 7. Devuelve ÚNICAMENTE el texto que diría el entrevistador. Sin preámbulos, sin "Aquí está la pregunta", sin etiquetas como "Pregunta:" ni "Entrevistador:".
 8. Si el PROGRESO indica que es la ÚLTIMA pregunta, avisale brevemente al candidato que es la última antes de formularla.
-9. Si recibís una imagen del candidato (un frame de su cámara), INCLUÍ antes de la pregunta UN comentario breve, positivo y específico sobre algo que realmente veas — su ropa ("qué buena esa camisa"), lentes, sonrisa, o el espacio de fondo. Concreto, para que se note que lo estás viendo de verdad. Siempre amable y profesional: nunca negativo, nunca sobre el cuerpo, nunca incómodo. Una sola oración y seguís con la pregunta.`;
+9. Si recibís una imagen del candidato (un frame de su cámara), INCLUÍ antes de la pregunta un comentario positivo y específico sobre lo que realmente ves — su ropa ("qué buena esa camisa"), lentes, sonrisa, el espacio de fondo, la iluminación. Si el contexto lo amerita, mencioná 2 o 3 detalles hilados con naturalidad ("me gusta esa camisa, y se ve un espacio muy ordenado detrás tuyo — se nota que te preparaste"). Concreto y natural, para que se note que lo estás viendo de verdad; que no suene a checklist. Siempre amable y profesional: nunca negativo, nunca sobre el cuerpo, nunca incómodo. Después seguís con la pregunta.`;
 
 const SYSTEM_PROMPT_FEEDBACK = `Sos un COACH DE ENTREVISTAS experto. Tu tarea es analizar una simulación de entrevista completa y generar un reporte de feedback detallado, constructivo y accionable.
 Recibís:
