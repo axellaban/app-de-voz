@@ -38,6 +38,12 @@ Tu tarea: Generar un reporte en formato JSON con la siguiente estructura exacta:
 {
   "score": 85,
   "summary": "Resumen general del desempeño...",
+  "indicators": [
+    { "name": "Claridad", "score": 80 },
+    { "name": "Estructura", "score": 70 },
+    { "name": "Fit con el puesto", "score": 75 },
+    { "name": "Confianza", "score": 65 }
+  ],
   "strengths": [
     "Fortaleza 1...",
     "Fortaleza 2..."
@@ -50,11 +56,14 @@ Tu tarea: Generar un reporte en formato JSON con la siguiente estructura exacta:
     {
       "question": "Pregunta realizada",
       "answer": "Respuesta dada",
+      "score": 72,
       "analysis": "Análisis de qué estuvo bien y qué faltó en esa respuesta específica.",
       "suggestion": "Una propuesta de respuesta ideal en primera persona (yo) basada en su perfil real, lista para decir en voz alta."
     }
   ]
 }
+
+Sobre "indicators": son SIEMPRE esos 4 nombres exactos (Claridad, Estructura, Fit con el puesto, Confianza), cada uno con un score 0-100 honesto. Cada pregunta lleva también su "score" 0-100 individual.
 
 Reglas críticas:
 - Sé honesto pero motivador. Valora la señal técnica, el fit cultural y la comunicación.

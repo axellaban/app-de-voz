@@ -32,17 +32,98 @@ type HistoryItem = {
 type FeedbackQuestion = {
   question: string;
   answer: string;
+  score?: number;
   analysis: string;
   suggestion: string;
 };
 
+type FeedbackIndicator = { name: string; score: number };
+
 type FeedbackReport = {
   score: number;
   summary: string;
+  indicators?: FeedbackIndicator[];
   strengths: string[];
   improvements: string[];
   questions: FeedbackQuestion[];
 };
+
+// Colores de semáforo según score.
+function scoreColor(score: number): string {
+  return score >= 75 ? "#10b981" : score >= 50 ? "#f59e0b" : "#ef4444";
+}
+
+// Velocímetro estilo tablero de auto para el puntaje general.
+function polarPoint(cx: number, cy: number, r: number, deg: number) {
+  const rad = (deg * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
+}
+function arcPath(cx: number, cy: number, r: number, fromDeg: number, toDeg: number): string {
+  const a = polarPoint(cx, cy, r, fromDeg);
+  const b = polarPoint(cx, cy, r, toDeg);
+  return `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} A ${r} ${r} 0 0 1 ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+}
+function ScoreGauge({ score }: { score: number }) {
+  const clamped = Math.max(0, Math.min(100, Math.round(score)));
+  // La aguja arranca en 0 y barre hasta el score al montar.
+  const [needle, setNeedle] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setNeedle(clamped), 150);
+    return () => clearTimeout(t);
+  }, [clamped]);
+  const needleDeg = needle * 1.8 - 90;
+  const R = 82;
+  return (
+    <div className="sim-gauge" role="img" aria-label={`Puntaje ${clamped} de 100`}>
+      <svg viewBox="0 0 200 122" className="sim-gauge-svg">
+        {/* Arcos de fondo: rojo / ámbar / verde con pequeños gaps */}
+        <path d={arcPath(100, 104, R, 180, 111)} stroke="#fecaca" strokeWidth="14" fill="none" strokeLinecap="round" />
+        <path d={arcPath(100, 104, R, 107, 57)} stroke="#fde68a" strokeWidth="14" fill="none" strokeLinecap="round" />
+        <path d={arcPath(100, 104, R, 53, 0)} stroke="#a7f3d0" strokeWidth="14" fill="none" strokeLinecap="round" />
+        {/* Ticks */}
+        {[0, 25, 50, 75, 100].map((v) => {
+          const a = polarPoint(100, 104, R - 14, 180 - v * 1.8);
+          const b = polarPoint(100, 104, R - 20, 180 - v * 1.8);
+          return <line key={v} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#cbd5e1" strokeWidth="2" />;
+        })}
+        {/* Aguja */}
+        <g
+          style={{
+            transform: `rotate(${needleDeg}deg)`,
+            transformOrigin: "100px 104px",
+            transition: "transform 1.3s cubic-bezier(0.3, 1.3, 0.45, 1)",
+          }}
+        >
+          <line x1="100" y1="104" x2="100" y2="36" stroke="#17181a" strokeWidth="4" strokeLinecap="round" />
+          <circle cx="100" cy="104" r="8" fill="#17181a" />
+          <circle cx="100" cy="104" r="3" fill="#fff" />
+        </g>
+      </svg>
+      <div className="sim-gauge-value" style={{ color: scoreColor(clamped) }}>
+        {clamped}
+        <span className="sim-gauge-total">/100</span>
+      </div>
+      <div className="sim-score-label">PUNTAJE GENERAL</div>
+    </div>
+  );
+}
+
+// Semáforo de tres luces: se enciende la que corresponde al score.
+function TrafficLight({ score }: { score: number }) {
+  const level = score >= 75 ? 2 : score >= 50 ? 1 : 0;
+  const colors = ["#ef4444", "#f59e0b", "#10b981"];
+  return (
+    <span className="sim-traffic" aria-hidden="true">
+      {colors.map((c, i) => (
+        <span
+          key={c}
+          className="sim-traffic-dot"
+          style={i === level ? { background: c, boxShadow: `0 0 8px ${c}88` } : undefined}
+        />
+      ))}
+    </span>
+  );
+}
 
 const STT_LANG: Record<Lang, string> = { es: "es", en: "en" };
 
@@ -426,6 +507,10 @@ export default function SimuladorPage() {
   const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confirmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Watchdog de silencio: regla de tiempo dura que no depende de que Deepgram
+  // emita UtteranceEnd/is_final — chequea actividad de voz cada 400ms.
+  const watchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastSpeechAtRef = useRef(0);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef(0);
   const wakeLockRef = useRef<any>(null);
@@ -502,13 +587,31 @@ export default function SimuladorPage() {
       clearInterval(confirmIntervalRef.current);
       confirmIntervalRef.current = null;
     }
+    if (watchdogRef.current) {
+      clearInterval(watchdogRef.current);
+      watchdogRef.current = null;
+    }
+  };
+
+  const SILENCE_MS = 2200;
+
+  const startWatchdog = () => {
+    if (watchdogRef.current) clearInterval(watchdogRef.current);
+    lastSpeechAtRef.current = Date.now();
+    watchdogRef.current = setInterval(() => {
+      if (phaseRef.current !== "listening") return;
+      if (currentAnswerRef.current.trim().length < MIN_ANSWER_CHARS) return;
+      if (Date.now() - lastSpeechAtRef.current >= SILENCE_MS) enterConfirming();
+    }, 400);
   };
 
   const enterListening = () => {
+    clearTurnTimers();
     currentAnswerRef.current = "";
     setCurrentAnswer("");
     setLines([]);
     setPhaseBoth("listening");
+    startWatchdog();
   };
 
   // Espera silenciosa antes de cerrar la respuesta: sin countdown visible
@@ -550,10 +653,14 @@ export default function SimuladorPage() {
     if (!text) return;
     const isFinal = !!msg.is_final;
 
-    // Habla nueva durante el countdown → todavía no terminó: volver a escuchar.
+    lastSpeechAtRef.current = Date.now();
+
+    // Habla nueva durante la espera de cierre → todavía no terminó: volver a
+    // escuchar (sin resetear la respuesta acumulada).
     if (ph === "confirming") {
       clearTurnTimers();
       setPhaseBoth("listening");
+      startWatchdog();
     }
 
     setLines((prev) => {
@@ -1423,9 +1530,28 @@ export default function SimuladorPage() {
           ) : (
             <>
               <div className="sim-score-circle-wrapper">
-                <div className="sim-score-circle">{feedbackReport?.score ?? 0}</div>
-                <div className="sim-score-label">PUNTAJE GENERAL</div>
+                <ScoreGauge score={feedbackReport?.score ?? 0} />
               </div>
+
+              {feedbackReport?.indicators && feedbackReport.indicators.length > 0 && (
+                <div className="sim-indicators">
+                  {feedbackReport.indicators.map((ind, i) => {
+                    const s = Math.max(0, Math.min(100, Math.round(ind.score)));
+                    return (
+                      <div className="sim-ind-card" key={i}>
+                        <div className="sim-ind-top">
+                          <span className="sim-ind-name">{ind.name}</span>
+                          <TrafficLight score={s} />
+                        </div>
+                        <div className="sim-ind-score" style={{ color: scoreColor(s) }}>{s}</div>
+                        <div className="sim-ind-bar">
+                          <div className="sim-ind-bar-fill" style={{ width: `${s}%`, background: scoreColor(s) }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <div className="sim-card">
                 <div className="sim-card-header">📊 Resumen del Loro</div>
@@ -1466,7 +1592,17 @@ export default function SimuladorPage() {
                 {feedbackReport?.questions.map((q, i) => (
                   <div key={i} className="sim-question-report-card">
                     <div className="sim-report-q-header">
-                      Pregunta {i + 1}: {q.question}
+                      <span>
+                        Pregunta {i + 1}: {q.question}
+                      </span>
+                      {typeof q.score === "number" && (
+                        <span
+                          className="sim-qscore"
+                          style={{ color: scoreColor(q.score), borderColor: scoreColor(q.score) }}
+                        >
+                          {Math.round(q.score)}
+                        </span>
+                      )}
                     </div>
                     <div className="sim-report-row">
                       <span className="sim-report-label">Tu Respuesta</span>
