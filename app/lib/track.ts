@@ -34,7 +34,9 @@ export type FunnelEvent =
   | "sim_session_finished"
   | "sim_avatar_video_fallback"
   | "sim_camera_toggled"
-  | "sim_mic_toggled";
+  | "sim_mic_toggled"
+  | "sim_cross_sell_click"
+  | "sim_share_whatsapp";
 
 export function track(event: FunnelEvent, props?: Record<string, string | number | boolean>) {
   try {

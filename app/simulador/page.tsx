@@ -43,6 +43,8 @@ type FeedbackReport = {
   score: number;
   level?: string;
   verdict?: string;
+  topPriority?: string;
+  nextStep?: string;
   summary: string;
   indicators?: FeedbackIndicator[];
   strengths: string[];
@@ -53,6 +55,25 @@ type FeedbackReport = {
 // Colores de semáforo según score.
 function scoreColor(score: number): string {
   return score >= 75 ? "#10b981" : score >= 50 ? "#f59e0b" : "#ef4444";
+}
+
+// El modelo puede devolver un JSON válido pero incompleto; normalizamos para
+// que el render nunca reviente por un campo faltante (mapear sobre undefined).
+function normalizeReport(raw: any): FeedbackReport {
+  const arr = (v: any) => (Array.isArray(v) ? v : []);
+  const n = Number(raw?.score);
+  return {
+    score: Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0,
+    level: typeof raw?.level === "string" ? raw.level : undefined,
+    verdict: typeof raw?.verdict === "string" ? raw.verdict : undefined,
+    topPriority: typeof raw?.topPriority === "string" ? raw.topPriority : undefined,
+    nextStep: typeof raw?.nextStep === "string" ? raw.nextStep : undefined,
+    summary: typeof raw?.summary === "string" ? raw.summary : "",
+    indicators: arr(raw?.indicators).filter((i: any) => i && typeof i.name === "string"),
+    strengths: arr(raw?.strengths).filter((s: any) => typeof s === "string"),
+    improvements: arr(raw?.improvements).filter((s: any) => typeof s === "string"),
+    questions: arr(raw?.questions).filter((q: any) => q && typeof q.question === "string"),
+  };
 }
 
 // Velocímetro estilo tablero de auto para el puntaje general.
@@ -431,6 +452,10 @@ const MIN_ANSWER_CHARS = 10;
 // Benchmark: los voice agents cierran turno a 0.5-0.8s de silencio; en
 // entrevista damos más margen para pensar, total ~2.3s.
 const CONFIRM_MS = 800;
+// Sin respuesta real: a los 12s ofrecemos pasar de pregunta; a los 25s la
+// sala avanza sola, para que un candidato que se queda mudo no quede colgado.
+const STUCK_MS = 12000;
+const NO_ANSWER_MS = 25000;
 
 export default function SimuladorPage() {
   const [phase, setPhase] = useState<Phase>("setup");
@@ -474,6 +499,12 @@ export default function SimuladorPage() {
   const [cameraOn, setCameraOn] = useState(false);
   const [camAvailable, setCamAvailable] = useState(false);
   const [micOn, setMicOn] = useState(true);
+  // "Te trabaste" (sin respuesta): ofrece pasar de pregunta.
+  const [stuck, setStuck] = useState(false);
+  const stuckRef = useRef(false);
+  const listeningStartedAtRef = useRef(0);
+  // Conexión de audio perdida sin recuperación: ofrece finalizar y ver feedback.
+  const [connLost, setConnLost] = useState(false);
   // Pasos reales de conexión para el panel de chat: 0=media, 1=WS, 2=primera
   // pregunta en camino, 3=todo listo.
   const [connectStep, setConnectStep] = useState(0);
@@ -607,10 +638,27 @@ export default function SimuladorPage() {
   const startWatchdog = () => {
     if (watchdogRef.current) clearInterval(watchdogRef.current);
     lastSpeechAtRef.current = Date.now();
+    listeningStartedAtRef.current = Date.now();
     watchdogRef.current = setInterval(() => {
       if (phaseRef.current !== "listening") return;
-      if (currentAnswerRef.current.trim().length < MIN_ANSWER_CHARS) return;
-      if (Date.now() - lastSpeechAtRef.current >= SILENCE_MS) enterConfirming();
+      const hasAnswer = currentAnswerRef.current.trim().length >= MIN_ANSWER_CHARS;
+      if (hasAnswer) {
+        // Ya hay respuesta real: cerrar por silencio (camino feliz).
+        if (stuckRef.current) {
+          stuckRef.current = false;
+          setStuck(false);
+        }
+        if (Date.now() - lastSpeechAtRef.current >= SILENCE_MS) enterConfirming();
+        return;
+      }
+      // Sin respuesta real: red de seguridad para no colgar la sala.
+      const waited = Date.now() - listeningStartedAtRef.current;
+      if (waited >= NO_ANSWER_MS) {
+        skipQuestion();
+      } else if (waited >= STUCK_MS && !stuckRef.current) {
+        stuckRef.current = true;
+        setStuck(true);
+      }
     }, 400);
   };
 
@@ -619,8 +667,30 @@ export default function SimuladorPage() {
     currentAnswerRef.current = "";
     setCurrentAnswer("");
     setLines([]);
+    stuckRef.current = false;
+    setStuck(false);
     setPhaseBoth("listening");
     startWatchdog();
+  };
+
+  // Avanza sin exigir respuesta mínima (candidato trabado o mudo). Registra lo
+  // que haya dicho, o una marca de "no respondí" para que el feedback lo note.
+  const skipQuestion = () => {
+    const ph = phaseRef.current;
+    if (ph !== "listening" && ph !== "confirming") return;
+    clearTurnTimers();
+    stuckRef.current = false;
+    setStuck(false);
+    const answer = currentAnswerRef.current.trim() || "(No respondí a esta pregunta)";
+    const updated = [...historyRef.current, { question: questionRef.current, answer }];
+    historyRef.current = updated;
+    setHistory(updated);
+    currentAnswerRef.current = "";
+    setCurrentAnswer("");
+    setLines([]);
+    track("sim_answer_closed", { auto: true, skipped: true, question_index: updated.length });
+    if (updated.length >= questionsCount) finishToFeedback(updated);
+    else beginTurnRef.current(updated);
   };
 
   // Espera silenciosa antes de cerrar la respuesta: sin countdown visible
@@ -706,7 +776,8 @@ export default function SimuladorPage() {
     const ph = phaseRef.current;
     if (ph === "setup" || ph === "feedback") return;
     if (reconnectAttemptsRef.current >= 3) {
-      setError("Se perdió la conexión de audio. Podés finalizar y ver el feedback de lo respondido.");
+      setError("Se perdió la conexión de audio.");
+      setConnLost(true);
       return;
     }
     const delay = 600 * 2 ** reconnectAttemptsRef.current;
@@ -727,6 +798,7 @@ export default function SimuladorPage() {
     wsRef.current = ws;
 
     ws.onopen = () => {
+      setConnLost(false);
       // Mientras el avatar habla no fluye PCM: sin KeepAlive Deepgram corta
       // el socket a ~10s de silencio.
       if (keepAliveRef.current) clearInterval(keepAliveRef.current);
@@ -1048,10 +1120,10 @@ export default function SimuladorPage() {
           }),
         });
         if (!res.ok) throw new Error("No se pudo obtener el reporte de feedback.");
-        const report: FeedbackReport = await res.json();
+        const report = normalizeReport(await res.json());
         setFeedbackReport(report);
         setIsGeneratingFeedback(false);
-        track("sim_feedback_shown", { score: report?.score ?? 0 });
+        track("sim_feedback_shown", { score: report.score });
         return;
       } catch (err: any) {
         if (attempt === 0) continue;
@@ -1079,6 +1151,9 @@ export default function SimuladorPage() {
     setElapsed(0);
     setMicOn(true);
     setConnectStep(0);
+    setStuck(false);
+    stuckRef.current = false;
+    setConnLost(false);
     sessionLangRef.current = lang;
     intentionalCloseRef.current = false;
     reconnectAttemptsRef.current = 0;
@@ -1209,6 +1284,24 @@ export default function SimuladorPage() {
     },
     [selectedModel]
   );
+
+  // Cross-sell: del simulador (gratis) al copiloto en vivo (producto estrella).
+  // ?ref=simulador para medir la conversión en analytics.
+  const goToCopilot = () => {
+    track("sim_cross_sell_click", { score: feedbackReport?.score ?? 0 });
+    window.location.href = "/app?ref=simulador";
+  };
+
+  // Loop viral top-of-funnel: comparte el SIMULADOR gratis por WhatsApp.
+  const shareSimulator = () => {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "https://loreado.vercel.app";
+    const msg =
+      `Practiqué una entrevista con una IA que te entrevista por video y te tira un informe con tu puntaje 🦜\n` +
+      `Está buenísimo para prepararte. Probalo gratis:\n${origin}/simulador`;
+    track("sim_share_whatsapp");
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   const inInterview = phase !== "setup" && phase !== "feedback";
   const connecting = phase === "connecting";
@@ -1411,7 +1504,16 @@ export default function SimuladorPage() {
             </div>
           </header>
 
-          {error && <div className="mono sim-error-box">⚠️ {error}</div>}
+          {error && (
+            <div className="mono sim-error-box">
+              ⚠️ {error}
+              {connLost && (
+                <button className="sim-error-cta" onClick={endInterview}>
+                  Finalizar y ver feedback →
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="sim-room-grid">
             <section className="sim-room-left">
@@ -1524,6 +1626,15 @@ export default function SimuladorPage() {
                 {phase === "listening" && !micOn && (
                   <div className="sim-chat-hint">Micrófono silenciado — activalo para responder</div>
                 )}
+
+                {phase === "listening" && stuck && micOn && (
+                  <div className="sim-chat-hint">
+                    ¿Te trabaste? No pasa nada.{" "}
+                    <button className="sim-skip-inline" onClick={skipQuestion}>
+                      Pasar de pregunta →
+                    </button>
+                  </div>
+                )}
               </div>
             </aside>
           </div>
@@ -1576,6 +1687,20 @@ export default function SimuladorPage() {
                 )}
               </div>
 
+              {(feedbackReport?.topPriority || feedbackReport?.nextStep) && (
+                <div className="sim-priority">
+                  <div className="sim-priority-label">👉 Enfocate en esto</div>
+                  {feedbackReport?.topPriority && (
+                    <p className="sim-priority-text">{feedbackReport.topPriority}</p>
+                  )}
+                  {feedbackReport?.nextStep && (
+                    <p className="sim-priority-step">
+                      <span>Próximo paso:</span> {feedbackReport.nextStep}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {feedbackReport?.indicators && feedbackReport.indicators.length > 0 && (
                 <div className="sim-indicators">
                   {feedbackReport.indicators.map((ind, i) => {
@@ -1609,7 +1734,7 @@ export default function SimuladorPage() {
                     👍 Fortalezas
                   </div>
                   <ul className="sim-strengths-list">
-                    {feedbackReport?.strengths.map((s, i) => (
+                    {(feedbackReport?.strengths ?? []).map((s, i) => (
                       <li key={i}>{s}</li>
                     ))}
                   </ul>
@@ -1620,7 +1745,7 @@ export default function SimuladorPage() {
                     💡 Áreas de Mejora
                   </div>
                   <ul className="sim-improvements-list">
-                    {feedbackReport?.improvements.map((imp, i) => (
+                    {(feedbackReport?.improvements ?? []).map((imp, i) => (
                       <li key={i}>{imp}</li>
                     ))}
                   </ul>
@@ -1632,7 +1757,7 @@ export default function SimuladorPage() {
               </h3>
 
               <div>
-                {feedbackReport?.questions.map((q, i) => (
+                {(feedbackReport?.questions ?? []).map((q, i) => (
                   <div key={i} className="sim-question-report-card">
                     <div className="sim-report-q-header">
                       <span>
@@ -1673,8 +1798,25 @@ export default function SimuladorPage() {
                 ))}
               </div>
 
-              <button onClick={() => setPhaseBoth("setup")} className="btn-action btn-primary" style={{ marginTop: 10 }}>
-                🔄 Iniciar Nueva Simulación
+              {/* Cross-sell al copiloto en vivo (acción primaria) + compartir el
+                  simulador. Una sola dirección dominante (Luhmann). */}
+              <div className="sim-cross">
+                <div className="sim-cross-eyebrow">Esto fue práctica 🦜</div>
+                <div className="sim-cross-title">En la entrevista real, el Loro te sopla la respuesta en vivo.</div>
+                <div className="sim-cross-text">
+                  El mismo Loro, pero en tu entrevista de verdad: escucha la pregunta y te arma la respuesta al
+                  instante con tu CV, la empresa y el puesto.
+                </div>
+                <button onClick={goToCopilot} className="btn-action btn-primary sim-cross-btn">
+                  Probá el copiloto en vivo →
+                </button>
+                <button onClick={shareSimulator} className="btn-action btn-whatsapp">
+                  Compartí el simulador por WhatsApp
+                </button>
+              </div>
+
+              <button onClick={() => setPhaseBoth("setup")} className="sim-restart-link">
+                🔄 Hacer otra simulación
               </button>
             </>
           )}
