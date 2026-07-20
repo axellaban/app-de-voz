@@ -1147,7 +1147,7 @@ export default function SimuladorPage() {
             </div>
           </div>
 
-          <div className="selectors-row" style={{ marginTop: 8, gridTemplateColumns: "1fr" }}>
+          <div className="selectors-row" style={{ marginTop: 8 }}>
             <div className="field">
               <label className="mono form-label">Tipo de Entrevista</label>
               <Dropdown
