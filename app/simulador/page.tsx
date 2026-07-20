@@ -430,6 +430,8 @@ export default function SimuladorPage() {
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef(0);
   const wakeLockRef = useRef<any>(null);
+  // En qué pregunta (además de la 1) el entrevistador "mira" la cámara.
+  const visionQuestionRef = useRef(0);
 
   const selectedModel = MODELS.find((m) => m.id === modelId) || MODELS[0];
 
@@ -645,6 +647,26 @@ export default function SimuladorPage() {
 
   // ---------- Turno: pregunta → voz → escucha ----------
 
+  // Frame chico de la cámara (JPEG ~30KB) para que el entrevistador "vea" al
+  // candidato en algunas preguntas. Avisado en el setup; si la cámara está
+  // apagada devuelve null y no se manda nada.
+  const captureFrame = (): string | null => {
+    try {
+      const v = videoRef.current;
+      if (!cameraOn || !v || v.readyState < 2 || !v.videoWidth) return null;
+      const canvas = document.createElement("canvas");
+      const w = 320;
+      canvas.width = w;
+      canvas.height = Math.round((v.videoHeight / v.videoWidth) * w);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/jpeg", 0.7);
+    } catch {
+      return null;
+    }
+  };
+
   const beginTurn = async (currentHistory: HistoryItem[]) => {
     setPhaseBoth("asking");
     setCurrentQuestion("");
@@ -690,6 +712,9 @@ export default function SimuladorPage() {
     };
 
     try {
+      const questionIndex = currentHistory.length + 1;
+      const withVision = questionIndex === 1 || questionIndex === visionQuestionRef.current;
+      const image = withVision ? captureFrame() : null;
       const res = await fetch("/api/simulador", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -703,12 +728,13 @@ export default function SimuladorPage() {
           provider: selectedModel.provider,
           model: selectedModel.model,
           history: currentHistory,
-          questionIndex: currentHistory.length + 1,
+          questionIndex,
           questionsCount,
+          ...(image ? { image } : {}),
         }),
       });
       if (!res.ok || !res.body) throw new Error("Error al obtener la pregunta.");
-      track("sim_question_asked", { question_index: currentHistory.length + 1, model: selectedModel.model });
+      track("sim_question_asked", { question_index: questionIndex, model: selectedModel.model, with_image: !!image });
 
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -924,6 +950,8 @@ export default function SimuladorPage() {
     setElapsed(0);
     setMicOn(true);
     setConnectStep(0);
+    // Además de la primera, una pregunta al azar (2..5) lleva frame de cámara.
+    visionQuestionRef.current = 2 + Math.floor(Math.random() * Math.max(1, questionsCount - 1));
     sessionLangRef.current = lang;
     intentionalCloseRef.current = false;
     reconnectAttemptsRef.current = 0;
@@ -1211,6 +1239,9 @@ export default function SimuladorPage() {
             <button onClick={() => void startSimulation()} className="btn-action btn-primary">
               ▶ Entrar a la Sala de Entrevista
             </button>
+            <p className="mono btn-hint" style={{ textAlign: "center" }}>
+              Si activás la cámara, el entrevistador puede verte durante la entrevista para una experiencia más real.
+            </p>
           </footer>
         </>
       )}

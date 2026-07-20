@@ -25,7 +25,8 @@ Reglas críticas:
 5. Haz una sola pregunta a la vez. No acumules preguntas.
 6. Responde SIEMPRE en el idioma indicado en "## IDIOMA DE LA RESPUESTA".
 7. Devuelve ÚNICAMENTE el texto que diría el entrevistador. Sin preámbulos, sin "Aquí está la pregunta", sin etiquetas como "Pregunta:" ni "Entrevistador:".
-8. Si el PROGRESO indica que es la ÚLTIMA pregunta, avisale brevemente al candidato que es la última antes de formularla.`;
+8. Si el PROGRESO indica que es la ÚLTIMA pregunta, avisale brevemente al candidato que es la última antes de formularla.
+9. Si recibís una imagen del candidato (un frame de su cámara), podés hacer UN comentario muy breve, cálido y profesional sobre lo que ves (su energía, su sonrisa, que se lo ve preparado) antes de la pregunta — solo si suma y suena natural. Nunca evalúes aspecto físico, ropa ni el lugar donde está, y nunca lo incomodes. Si no hay nada natural para decir, no menciones la imagen.`;
 
 const SYSTEM_PROMPT_FEEDBACK = `Sos un COACH DE ENTREVISTAS experto. Tu tarea es analizar una simulación de entrevista completa y generar un reporte de feedback detallado, constructivo y accionable.
 Recibís:
@@ -97,6 +98,7 @@ export async function POST(req: Request) {
     history?: Array<{ question: string; answer: string }>;
     questionIndex?: number;
     questionsCount?: number;
+    image?: string;
   };
   try {
     body = await req.json();
@@ -155,6 +157,14 @@ ${historyText}`;
   const isFeedback = action === "feedback";
   const systemPrompt = isFeedback ? SYSTEM_PROMPT_FEEDBACK : SYSTEM_PROMPT_INTERVIEWER;
 
+  // Frame opcional de la cámara del candidato (data URL JPEG chico) para que
+  // el entrevistador "lo vea". Solo se usa en next-question y solo con Gemini.
+  let image: { mimeType: string; data: string } | null = null;
+  if (!isFeedback && typeof body.image === "string" && body.image.length < 400_000) {
+    const m = body.image.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+    if (m) image = { mimeType: m[1], data: m[2] };
+  }
+
   const FALLBACK: Record<Provider, string[]> = {
     openai: ["gpt-4.1-mini", "gpt-4o-mini"],
     anthropic: ["claude-haiku-4-5"],
@@ -168,7 +178,7 @@ ${historyText}`;
     } else {
       if (provider === "anthropic") return await streamAnthropic(candidates, systemPrompt, userContent);
       if (provider === "openai") return await streamOpenAI(candidates, systemPrompt, userContent);
-      return await streamGemini(candidates, systemPrompt, userContent);
+      return await streamGemini(candidates, systemPrompt, userContent, image);
     }
   } catch (err: any) {
     return new Response(`Error del modelo: ${err?.message || "desconocido"}`, { status: 502 });
@@ -217,13 +227,20 @@ function sseTextStream(
   });
 }
 
-async function streamGemini(models: string[], systemPrompt: string, userContent: string): Promise<Response> {
+async function streamGemini(
+  models: string[],
+  systemPrompt: string,
+  userContent: string,
+  image?: { mimeType: string; data: string } | null
+): Promise<Response> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return new Response("Falta GEMINI_API_KEY en las variables de entorno.", { status: 500 });
   }
+  const parts: Array<Record<string, unknown>> = [{ text: userContent }];
+  if (image) parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
   const payload = {
-    contents: [{ role: "user", parts: [{ text: userContent }] }],
+    contents: [{ role: "user", parts }],
     systemInstruction: { parts: [{ text: systemPrompt }] },
     generationConfig: {
       temperature: 0.5,
