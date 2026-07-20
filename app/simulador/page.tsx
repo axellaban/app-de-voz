@@ -1050,18 +1050,17 @@ export default function SimuladorPage() {
             <span className="brand-title">Loreado.IA 🦜</span>
             <span className="sim-badge">Simulador Beta</span>
           </div>
-        </header>
-      )}
-
-      {phase === "setup" && (
-        <>
-          {practicing > 0 && (
+          {phase === "setup" && practicing > 0 && (
             <div className="sim-social-pill">
               <span className="sim-social-dot" aria-hidden="true" />
               {practicing} personas practicando ahora
             </div>
           )}
+        </header>
+      )}
 
+      {phase === "setup" && (
+        <>
           <p className="tagline">
             Practicá entrevistas de trabajo gratis con el Loro simulador de entrevistas. Recibí feedback al instante,
             mejorá tus respuestas y ganá confianza para cualquier entrevista.
@@ -1176,9 +1175,6 @@ export default function SimuladorPage() {
             <button onClick={() => void startSimulation()} className="btn-action btn-primary">
               ▶ Entrar a la Sala de Entrevista
             </button>
-            <p className="mono btn-hint" style={{ textAlign: "center" }}>
-              Gratis e ilimitado. Usa tu micrófono; la cámara es opcional y nunca sale de tu navegador.
-            </p>
           </footer>
         </>
       )}

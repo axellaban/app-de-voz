@@ -113,6 +113,9 @@ input {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* Como ítem de grid necesita min-width 0 para que el label del dropdown
+     truncue con ellipsis en vez de desbordar el viewport. */
+  min-width: 0;
 }
 
 /* Translucent Flat Panels */
@@ -1226,8 +1229,18 @@ input {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
-  align-self: flex-start;
-  margin-top: 4px;
+  white-space: nowrap;
+  flex: none;
+}
+/* En pantallas chicas la píldora comparte línea con el logo: achicar y
+   esconder el badge Beta para que entre todo. */
+@media (max-width: 560px) {
+  .sim-social-pill {
+    font-size: 11px;
+    padding: 5px 10px;
+    gap: 6px;
+  }
+  .brand-header .sim-badge { display: none; }
 }
 .sim-social-dot {
   width: 9px;

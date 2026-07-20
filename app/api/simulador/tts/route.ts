@@ -6,11 +6,14 @@ import { capacityClosed, rateLimit, sameOriginStrict } from "../../../lib/rateli
 // (tono/acento); tts-1 no, por eso el retry lo omite.
 const TTS_MODEL = "gpt-4o-mini-tts";
 const TTS_MODEL_FALLBACK = "tts-1";
-const TTS_VOICE = "ash";
+// coral = voz femenina cálida; el ritmo se pide por instructions (el modelo
+// nuevo no soporta `speed`, el fallback tts-1 sí).
+const TTS_VOICE = "coral";
+const FALLBACK_SPEED = 1.15;
 
 const INSTRUCTIONS: Record<"es" | "en", string> = {
-  es: "Hablá como un entrevistador profesional, cercano y claro, en español rioplatense neutro. Ritmo natural de conversación, sin sonar leído.",
-  en: "Speak like a professional, warm and clear job interviewer. Natural conversational pace.",
+  es: "Hablá como una entrevistadora profesional, cálida y amena, en español rioplatense neutro. Ritmo ágil, un poco más rápido que una conversación normal, pero sin sonar apurada ni leída.",
+  en: "Speak like a warm, friendly and professional female job interviewer. Brisk conversational pace, slightly faster than normal, without sounding rushed.",
 };
 
 async function requestSpeech(apiKey: string, model: string, text: string, lang: "es" | "en") {
@@ -20,7 +23,11 @@ async function requestSpeech(apiKey: string, model: string, text: string, lang: 
     input: text,
     response_format: "mp3",
   };
-  if (model === TTS_MODEL) body.instructions = INSTRUCTIONS[lang];
+  if (model === TTS_MODEL) {
+    body.instructions = INSTRUCTIONS[lang];
+  } else {
+    body.speed = FALLBACK_SPEED;
+  }
   return fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: {
