@@ -65,7 +65,7 @@ export class TtsQueue {
     const text = sentence.trim();
     if (!text) return;
     const abort = new AbortController();
-    const bufferPromise = this.fetchAndDecode(text, abort.signal);
+    const bufferPromise = this.fetchAndDecode(text, abort);
     this.items.push({ text, bufferPromise, abort });
     void this.pump();
   }
@@ -86,13 +86,20 @@ export class TtsQueue {
     this.currentSource = null;
   }
 
-  private async fetchAndDecode(text: string, signal: AbortSignal): Promise<AudioBuffer | null> {
+  private async fetchAndDecode(text: string, abort: AbortController): Promise<AudioBuffer | null> {
+    // Timeout duro: un fetch de TTS colgado dejaba la cola esperando para
+    // siempre y la sala trabada en "hablando".
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      abort.abort();
+    }, 12_000);
     try {
       const res = await fetch("/api/simulador/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, lang: this.lang }),
-        signal,
+        signal: abort.signal,
       });
       if (!res.ok) throw new Error(`tts ${res.status}`);
       const buf = await res.arrayBuffer();
@@ -102,8 +109,10 @@ export class TtsQueue {
         this.ctx.decodeAudioData(buf, resolve, reject);
       });
     } catch {
-      if (!signal.aborted) this.hadError = true;
+      if (timedOut || !abort.signal.aborted) this.hadError = true;
       return null;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

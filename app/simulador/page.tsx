@@ -513,6 +513,9 @@ export default function SimuladorPage() {
   // emita UtteranceEnd/is_final — chequea actividad de voz cada 400ms.
   const watchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastSpeechAtRef = useRef(0);
+  // Tope duro de la fase "hablando": si algo se cuelga (stream, TTS), la sala
+  // pasa igual a escuchar en vez de quedar trabada.
+  const speakFailsafeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef(0);
   const wakeLockRef = useRef<any>(null);
@@ -592,6 +595,10 @@ export default function SimuladorPage() {
     if (watchdogRef.current) {
       clearInterval(watchdogRef.current);
       watchdogRef.current = null;
+    }
+    if (speakFailsafeRef.current) {
+      clearTimeout(speakFailsafeRef.current);
+      speakFailsafeRef.current = null;
     }
   };
 
@@ -799,6 +806,22 @@ export default function SimuladorPage() {
       setSpokenQuestion(questionRef.current);
       spokenBaseRef.current = questionRef.current;
     };
+    const armSpeakFailsafe = (ms: number) => {
+      if (speakFailsafeRef.current) clearTimeout(speakFailsafeRef.current);
+      speakFailsafeRef.current = setTimeout(() => {
+        speakFailsafeRef.current = null;
+        if (phaseRef.current === "asking" || phaseRef.current === "speaking") {
+          queue.stop();
+          clearRevealTimer();
+          setSpokenQuestion(questionRef.current);
+          track("session_error", { where: "sim_speak_failsafe" });
+          enterListening();
+        }
+      }, ms);
+    };
+    // Tope inicial generoso por si el stream del LLM nunca termina.
+    armSpeakFailsafe(45_000);
+
     queue.onAllEnded = () => {
       // Terminó el audio: asegurar el texto completo en pantalla.
       clearRevealTimer();
@@ -874,6 +897,8 @@ export default function SimuladorPage() {
       }
       if (pending.trim()) queue.enqueue(pending.trim());
       queue.finishInput();
+      // Con el texto completo, ajustar el tope a la duración esperada del habla.
+      armSpeakFailsafe(Math.max(15_000, questionText.length * 120));
 
       if (!questionText.trim()) throw new Error("El entrevistador no devolvió pregunta.");
     } catch (err: any) {

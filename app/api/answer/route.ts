@@ -173,26 +173,35 @@ function sseTextStream(
   const reader = upstream.getReader();
   let buffer = "";
   return new ReadableStream({
+    // El pull loopea hasta encolar datos reales: si resuelve sin encolar,
+    // Vercel Edge puede pausar el stream (fix redescubierto del historial viejo).
     async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const json = trimmed.slice(5).trim();
-        if (!json || json === "[DONE]") continue;
-        try {
-          const text = extract(json);
-          if (text) controller.enqueue(encoder.encode(text));
-        } catch {
-          // ignora fragmentos incompletos
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          return;
         }
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        let enqueuedAny = false;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const json = trimmed.slice(5).trim();
+          if (!json || json === "[DONE]") continue;
+          try {
+            const text = extract(json);
+            if (text) {
+              controller.enqueue(encoder.encode(text));
+              enqueuedAny = true;
+            }
+          } catch {
+            // ignora fragmentos incompletos
+          }
+        }
+        if (enqueuedAny) return;
       }
     },
     cancel() {
