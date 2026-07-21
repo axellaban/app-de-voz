@@ -72,7 +72,7 @@ export default function Hub() {
         </p>
 
         <Link
-          href="/app?ref=home"
+          href="/app?ref=copiloto"
           className="hub-cta-secondary"
           onClick={() => track("hub_copilot_click")}
         >
