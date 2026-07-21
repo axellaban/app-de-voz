@@ -459,6 +459,7 @@ function fmtElapsed(secs: number): string {
 }
 
 const LS_KEY_CONTEXT = "simulador:context:v1";
+const LS_KEY_REPORT = "simulador:lastReport:v1";
 
 // Umbral mínimo para considerar que hubo una respuesta real (evita cerrar el
 // turno por un carraspeo transcripto).
@@ -553,6 +554,8 @@ export default function SimuladorPage() {
   const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
   const [feedbackReport, setFeedbackReport] = useState<FeedbackReport | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  // Último informe guardado (sobrevive al refresh): acceso desde el setup.
+  const [savedReport, setSavedReport] = useState<FeedbackReport | null>(null);
 
   // Social proof simulada del setup: número que deriva lentamente entre 35 y
   // 90 para que parezca actividad real. Decisión de producto explícita.
@@ -615,6 +618,17 @@ export default function SimuladorPage() {
       if (saved.modelId && MODELS.some((m) => m.id === saved.modelId)) setModelId(saved.modelId);
       if (saved.lang === "es" || saved.lang === "en") setLang(saved.lang);
       if (saved.interviewType) setInterviewType(saved.interviewType);
+    } catch {}
+  }, []);
+
+  // Recuperar el último informe (sobrevive al refresh). No auto-saltamos al
+  // feedback: se ofrece un acceso discreto en el setup.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY_REPORT);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (saved?.report) setSavedReport(normalizeReport(saved.report));
     } catch {}
   }, []);
 
@@ -1172,6 +1186,10 @@ export default function SimuladorPage() {
         if (!res.ok) throw new Error("No se pudo obtener el reporte de feedback.");
         const report = normalizeReport(await res.json());
         setFeedbackReport(report);
+        setSavedReport(report);
+        try {
+          localStorage.setItem(LS_KEY_REPORT, JSON.stringify({ report, company, role, ts: Date.now() }));
+        } catch {}
         setIsGeneratingFeedback(false);
         track("sim_feedback_shown", { score: report.score });
         return;
@@ -1524,6 +1542,18 @@ export default function SimuladorPage() {
             <button onClick={() => void startSimulation()} className="btn-action btn-primary">
               ▶ Soltar Loro (generar sala)
             </button>
+            {savedReport && (
+              <button
+                className="sim-last-report-link"
+                onClick={() => {
+                  setError("");
+                  setFeedbackReport(savedReport);
+                  setPhaseBoth("feedback");
+                }}
+              >
+                Ver tu último informe →
+              </button>
+            )}
           </footer>
         </>
       )}
@@ -1874,11 +1904,11 @@ export default function SimuladorPage() {
               {/* Cross-sell al copiloto en vivo (acción primaria) + compartir el
                   simulador. Una sola dirección dominante (Luhmann). */}
               <div className="sim-cross">
-                <div className="sim-cross-eyebrow">Esto fue práctica 🦜</div>
-                <div className="sim-cross-title">En la entrevista real, el Loro te sopla la respuesta en vivo.</div>
+                <div className="sim-cross-eyebrow">¿Te gustó el simulador? 🦜</div>
+                <div className="sim-cross-title">Ahora imaginá tenerlo puesto en la entrevista de verdad.</div>
                 <div className="sim-cross-text">
-                  El mismo Loro, pero en tu entrevista de verdad: escucha la pregunta y te arma la respuesta al
-                  instante con tu CV, la empresa y el puesto.
+                  Cuando te quedes en blanco, el Loro escucha la pregunta y te sopla la respuesta al instante —armada
+                  con tu CV, la empresa y el puesto—. Vos solo la leés. Nadie se entera.
                 </div>
                 <button onClick={goToCopilot} className="btn-action btn-primary btn-answer sim-cross-btn">
                   <span className="btn-answer-inner">

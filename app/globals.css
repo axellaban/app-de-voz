@@ -2268,6 +2268,19 @@ input {
   margin-top: 4px;
   text-decoration: underline;
 }
+/* Acceso al último informe guardado, en el setup. */
+.sim-last-report-link {
+  align-self: center;
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px;
+  text-decoration: underline;
+}
+.sim-last-report-link:hover { color: var(--loro-green-bright); }
 
 /* "La una cosa": bloque hero del informe (decisión Luhmann) */
 .sim-priority {

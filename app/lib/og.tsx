@@ -15,7 +15,11 @@ const LORO_TEXT_GRADIENT =
 // Card compartible (WhatsApp/Twitter/etc.), psicodélica: marco de degradado,
 // glows de color de fondo y tipografía con los colores del loro. Sin fetch
 // externo (fuente del sistema) para renderizar en el edge.
-export function ogImage() {
+// Parametrizable por página; los defaults son la card del copiloto (home).
+export function ogImage(opts?: { title?: string; pill?: string; claim?: string }) {
+  const title = opts?.title ?? "El copiloto de IA que RRHH no quiere que uses.";
+  const pill = opts?.pill ?? "Entrevistas en tiempo real";
+  const claim = opts?.claim ?? "Gratis · sin instalar nada";
   return new ImageResponse(
     (
       <div
@@ -92,7 +96,7 @@ export function ogImage() {
               zIndex: 1,
             }}
           >
-            El copiloto de IA que RRHH no quiere que uses.
+            {title}
           </div>
 
           {/* Pie: pill de degradado + claim */}
@@ -108,10 +112,10 @@ export function ogImage() {
                 borderRadius: 999,
               }}
             >
-              Entrevistas en tiempo real
+              {pill}
             </div>
             <div style={{ display: "flex", color: "#c7ccd1", fontSize: 30, fontWeight: 600 }}>
-              Gratis · sin instalar nada
+              {claim}
             </div>
           </div>
         </div>
