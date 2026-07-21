@@ -1213,18 +1213,27 @@ input {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 30px 24px;
+  padding: 26px 20px 30px;
   border-radius: 9999px; /* Real Pill Capsule Shape */
   text-decoration: none;
   text-align: center;
   position: relative;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 1;
   overflow: visible; /* crucial for glows */
 }
 
 .hub-pill-btn:hover {
-  transform: scale(1.06) translateY(-6px);
+  transform: scale(1.07) translateY(-6px);
+}
+
+.hub-3d-pill-svg {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-bottom: 2px;
+}
+
+.hub-pill-btn:hover .hub-3d-pill-svg {
+  transform: scale(1.12) rotate(-20deg) translateY(-2px) !important;
 }
 
 .hub-pill-inner {
@@ -1253,30 +1262,42 @@ input {
   max-width: 220px;
 }
 
+/* Center seam dividing the capsule button in two */
+.hub-pill-seam {
+  position: absolute;
+  top: 15%;
+  bottom: 15%;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+
 /* 3D Glossy Reflection on top of every pill button */
 .hub-pill-gloss {
   position: absolute;
   top: 3px;
-  left: 12px;
-  right: 12px;
-  height: 45%;
+  left: 14px;
+  right: 14px;
+  height: 44%;
   border-radius: 9999px 9999px 0 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 100%);
   pointer-events: none;
-  z-index: 3;
+  z-index: 4;
 }
 
 /* Blue Pill - Simulador */
 .hub-pill-blue {
   background: radial-gradient(circle at 50% 30%, #1e3a8a 0%, #090f1d 80%);
   border: 2.5px solid #2563eb;
-  box-shadow: 0 0 20px rgba(37, 99, 235, 0.35), inset 0 2px 6px rgba(255, 255, 255, 0.3), inset 0 -6px 12px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 24px rgba(37, 99, 235, 0.4), inset 0 2px 6px rgba(255, 255, 255, 0.35), inset 0 -6px 12px rgba(0, 0, 0, 0.6);
   transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, background 0.3s ease;
 }
 
 .hub-pill-blue:hover {
   border-color: #60a5fa;
-  box-shadow: 0 0 40px rgba(59, 130, 246, 0.8), inset 0 2px 10px rgba(255, 255, 255, 0.5), inset 0 -6px 16px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 45px rgba(59, 130, 246, 0.85), inset 0 2px 10px rgba(255, 255, 255, 0.55), inset 0 -6px 16px rgba(0, 0, 0, 0.7);
   background: radial-gradient(circle at 50% 30%, #2563eb 0%, #0d162a 80%);
 }
 
@@ -1299,14 +1320,14 @@ input {
   background: radial-gradient(circle at 50% 30%, #450a0a 0%, #0f070e 80%);
   z-index: 2;
   border: 2.5px solid rgba(239, 68, 68, 0.5);
-  box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.25), inset 0 -6px 12px rgba(0, 0, 0, 0.7);
+  box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.3), inset 0 -6px 12px rgba(0, 0, 0, 0.7);
   transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .hub-pill-red:hover .hub-pill-red-card {
   background: radial-gradient(circle at 50% 30%, #7f1d1d 0%, #170a16 80%);
-  border-color: rgba(248, 113, 113, 0.8);
-  box-shadow: inset 0 2px 10px rgba(255, 255, 255, 0.4), inset 0 -6px 16px rgba(0, 0, 0, 0.8);
+  border-color: rgba(248, 113, 113, 0.85);
+  box-shadow: inset 0 2px 10px rgba(255, 255, 255, 0.45), inset 0 -6px 16px rgba(0, 0, 0, 0.8);
 }
 
 /* Multi-color gradient outline and blur glow for the red pill */

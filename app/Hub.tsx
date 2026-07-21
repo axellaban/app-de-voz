@@ -36,61 +36,83 @@ function IaFlag() {
   );
 }
 
-// Icono de Pastilla 3D estilo Matrix (bicolor + brillo de cápsula)
-function PillSvg({ type }: { type: "blue" | "red" }) {
+// Cápsula 3D realista idéntica a la imagen de referencia Matrix
+function MatrixPill3D({ type }: { type: "blue" | "red" }) {
   const isRed = type === "red";
+  const idSuffix = isRed ? "Red" : "Blue";
+
   return (
     <svg
-      width="44"
-      height="24"
-      viewBox="0 0 42 22"
+      width="130"
+      height="54"
+      viewBox="0 0 140 60"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      style={{ transform: "rotate(-25deg)", filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.5))" }}
+      className="hub-3d-pill-svg"
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="pillGradLeftBlue" x1="0" y1="0" x2="0" y2="22" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#60a5fa" />
-          <stop offset="50%" stopColor="#2563eb" />
-          <stop offset="100%" stopColor="#1e3a8a" />
-        </linearGradient>
-        <linearGradient id="pillGradRightBlue" x1="0" y1="0" x2="0" y2="22" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#93c5fd" />
-          <stop offset="50%" stopColor="#3b82f6" />
-          <stop offset="100%" stopColor="#1d4ed8" />
-        </linearGradient>
+        <filter id={`pillShadow${idSuffix}`} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="5" />
+        </filter>
 
-        <linearGradient id="pillGradLeftRed" x1="0" y1="0" x2="0" y2="22" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#f87171" />
-          <stop offset="50%" stopColor="#dc2626" />
-          <stop offset="100%" stopColor="#991b1b" />
-        </linearGradient>
-        <linearGradient id="pillGradRightRed" x1="0" y1="0" x2="0" y2="22" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#34d399" />
-          <stop offset="50%" stopColor="#10b981" />
-          <stop offset="100%" stopColor="#047857" />
+        <linearGradient id={`gelBody${idSuffix}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={isRed ? "#f87171" : "#38bdf8"} />
+          <stop offset="30%" stopColor={isRed ? "#ef4444" : "#0284c7"} />
+          <stop offset="75%" stopColor={isRed ? "#b91c1c" : "#0369a1"} />
+          <stop offset="100%" stopColor={isRed ? "#7f1d1d" : "#075985"} />
         </linearGradient>
       </defs>
 
-      {/* Mitad izquierda de la cápsula */}
-      <path
-        d="M11 0 H21 V22 H11 A11 11 0 0 1 11 0 Z"
-        fill={isRed ? "url(#pillGradLeftRed)" : "url(#pillGradLeftBlue)"}
+      {/* Sombra de cáustica de color sobre el suelo */}
+      <ellipse
+        cx="70"
+        cy="52"
+        rx="52"
+        ry="6"
+        fill={isRed ? "#ef4444" : "#0284c7"}
+        opacity="0.55"
+        filter={`url(#pillShadow${idSuffix})`}
       />
-      {/* Mitad derecha de la cápsula */}
-      <path
-        d="M21 0 H31 A11 11 0 0 1 31 22 H21 V0 Z"
-        fill={isRed ? "url(#pillGradRightRed)" : "url(#pillGradRightBlue)"}
-      />
-      {/* Costura divisoria central */}
-      <line x1="21" y1="0" x2="21" y2="22" stroke="rgba(0,0,0,0.3)" strokeWidth="1" />
 
-      {/* Brillo de gelatina en la parte superior */}
+      {/* Cuerpo principal de la cápsula */}
+      <rect
+        x="15"
+        y="10"
+        width="110"
+        height="38"
+        rx="19"
+        fill={`url(#gelBody${idSuffix})`}
+        stroke={isRed ? "rgba(248, 113, 113, 0.6)" : "rgba(56, 189, 248, 0.6)"}
+        strokeWidth="1.5"
+      />
+
+      {/* Refracción translúcida interna */}
+      <rect
+        x="22"
+        y="14"
+        width="96"
+        height="30"
+        rx="15"
+        fill={isRed ? "#f87171" : "#38bdf8"}
+        opacity="0.25"
+      />
+
+      {/* Costura divisoria central de la cápsula */}
+      <line x1="68" y1="10" x2="68" y2="48" stroke={isRed ? "#7f1d1d" : "#0369a1"} strokeWidth="1.5" opacity="0.8" />
+      <line x1="70" y1="10" x2="70" y2="48" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+
+      {/* Reflejos de cristal tipo ventana (especular alto) */}
+      <ellipse cx="55" cy="18" rx="28" ry="3" fill="white" opacity="0.85" />
+      <path d="M 32 14 H 108 C 114 14 120 17 120 22 C 120 18 114 14 108 14 H 32 Z" fill="white" opacity="0.9" />
+
+      {/* Borde de luz inferior */}
       <path
-        d="M11 3 H31 A8 8 0 0 0 37 9 H5 A8 8 0 0 1 11 3 Z"
-        fill="white"
-        opacity="0.38"
+        d="M 30 44 C 50 47 90 47 110 44"
+        stroke={isRed ? "#fee2e2" : "#e0f2fe"}
+        strokeWidth="1.5"
+        opacity="0.6"
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -120,8 +142,9 @@ export default function Hub() {
             onClick={() => track("hub_practice_click")}
           >
             <span className="hub-pill-gloss" />
+            <span className="hub-pill-seam" />
             <span className="hub-pill-inner">
-              <PillSvg type="blue" />
+              <MatrixPill3D type="blue" />
               <span className="hub-pill-label">Simulador</span>
               <span className="hub-pill-sub">practicá con un entrevistador muy simpático</span>
             </span>
@@ -135,8 +158,9 @@ export default function Hub() {
             <span className="hub-pill-glow" />
             <span className="hub-pill-red-card" />
             <span className="hub-pill-gloss" />
+            <span className="hub-pill-seam" />
             <span className="hub-pill-inner">
-              <PillSvg type="red" />
+              <MatrixPill3D type="red" />
               <span className="hub-pill-label">Copiloto</span>
               <span className="hub-pill-sub">te acompaña durante tu entrevista en tiempo real</span>
             </span>
