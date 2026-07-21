@@ -71,12 +71,6 @@ function HandSvg({ side }: { side: "left" | "right" }) {
             <stop offset="0%" stopColor="rgba(255,200,160,0.35)" />
             <stop offset="100%" stopColor="rgba(255,200,160,0)" />
           </radialGradient>
-
-          {/* Sombra de desvanecimiento hacia el fondo negro en la base */}
-          <radialGradient id={`fadeBg${id}`} cx="50%" cy="50%" r="50%">
-            <stop offset="65%" stopColor="rgba(0,0,0,0)" />
-            <stop offset="100%" stopColor="rgba(0,0,0,0.95)" />
-          </radialGradient>
         </defs>
 
         {/* ====== MUÑECA Y ANTEBRAZO (viniendo desde el fondo oscuro) ====== */}
@@ -153,11 +147,8 @@ function HandSvg({ side }: { side: "left" | "right" }) {
         {/* Pliegue principal de la palma */}
         <path d="M 52 82 C 80 92 130 90 162 76" stroke="rgba(0,0,0,0.7)" strokeWidth="2" strokeLinecap="round" />
 
-        {/* Luz cenital en el cuenco de la palma */}
+        {/* ====== LUZ ESPECULAR EN LA PALMA ====== */}
         <ellipse cx="108" cy="82" rx="38" ry="16" fill={`url(#palmGlow${id})`} />
-
-        {/* Sombra de desvanecimiento hacia el fondo negro en la base */}
-        <rect x="0" y="0" width="220" height="160" fill={`url(#fadeBg${id})`} />
       </svg>
     </div>
   );
