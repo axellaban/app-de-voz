@@ -39,6 +39,7 @@ function IaFlag() {
 // Mano de Morfeo ofreciendo la cápsula en la palma
 function MorpheusHandSvg({ side }: { side: "left" | "right" }) {
   const isRight = side === "right";
+  const idSuffix = isRight ? "Right" : "Left";
   return (
     <div className="hub-morpheus-hand-wrap" aria-hidden="true">
       <svg
@@ -49,35 +50,42 @@ function MorpheusHandSvg({ side }: { side: "left" | "right" }) {
         xmlns="http://www.w3.org/2000/svg"
         style={{
           transform: isRight ? "scaleX(-1)" : "none",
+          filter: "drop-shadow(0 8px 14px rgba(0,0,0,0.85))",
         }}
       >
         <defs>
-          <linearGradient id="handSkinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#443932" />
-            <stop offset="50%" stopColor="#29211c" />
-            <stop offset="100%" stopColor="#120e0c" />
+          <linearGradient id={`handSkinGrad${idSuffix}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#4a3b32" />
+            <stop offset="40%" stopColor="#2c221c" />
+            <stop offset="85%" stopColor="#140f0c" />
+            <stop offset="100%" stopColor="#080605" />
           </linearGradient>
-          <linearGradient id="handHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,200,170,0.3)" />
-            <stop offset="100%" stopColor="rgba(255,200,170,0)" />
+          <linearGradient id={`handHighlight${idSuffix}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,210,185,0.4)" />
+            <stop offset="100%" stopColor="rgba(255,210,185,0)" />
           </linearGradient>
         </defs>
 
         {/* Silueta y contorno de la mano de Morfeo ofreciendo la cápsula */}
         <path
           d="M30 120 C 30 100 25 80 20 70 C 15 60 10 50 15 35 C 18 26 26 22 32 30 C 36 35 40 45 42 50 C 44 40 48 20 54 12 C 58 6 66 8 68 18 C 70 28 70 42 70 48 C 74 38 80 16 86 10 C 90 6 98 8 100 18 C 102 28 100 42 99 50 C 103 42 108 24 114 20 C 119 16 126 18 126 28 C 126 38 120 54 118 60 C 122 55 128 45 134 44 C 139 43 145 48 144 56 C 142 68 132 82 122 92 C 108 106 80 120 50 120 Z"
-          fill="url(#handSkinGrad)"
-          stroke="rgba(255, 190, 150, 0.35)"
-          strokeWidth="1.5"
+          fill={`url(#handSkinGrad${idSuffix})`}
+          stroke="rgba(255, 190, 150, 0.4)"
+          strokeWidth="1.2"
         />
 
-        {/* Líneas y pliegues de la palma */}
-        <path d="M 38 52 C 50 65 75 75 105 70" stroke="rgba(0,0,0,0.6)" strokeWidth="2" strokeLinecap="round" />
-        <path d="M 45 72 C 60 82 85 88 115 82" stroke="rgba(0,0,0,0.5)" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M 32 45 C 38 55 48 65 52 75" stroke="rgba(0,0,0,0.6)" strokeWidth="1.5" strokeLinecap="round" />
+        {/* Contornos de nudillos y dedos */}
+        <path d="M 58 6 C 66 16 70 32 72 46" stroke="rgba(255,190,150,0.3)" strokeWidth="2" strokeLinecap="round" />
+        <path d="M 90 4 C 96 16 100 32 101 46" stroke="rgba(255,190,150,0.3)" strokeWidth="2" strokeLinecap="round" />
+        <path d="M 120 14 C 125 24 124 38 122 52" stroke="rgba(255,190,150,0.35)" strokeWidth="2" strokeLinecap="round" />
 
-        {/* Brillo especular en el centro de la palma */}
-        <ellipse cx="75" cy="65" rx="35" ry="18" fill="url(#handHighlight)" />
+        {/* Líneas y pliegues de la palma */}
+        <path d="M 38 52 C 50 65 75 75 105 70" stroke="rgba(0,0,0,0.7)" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M 45 72 C 60 82 85 88 115 82" stroke="rgba(0,0,0,0.6)" strokeWidth="2" strokeLinecap="round" />
+        <path d="M 32 45 C 38 55 48 65 52 75" stroke="rgba(0,0,0,0.65)" strokeWidth="2" strokeLinecap="round" />
+
+        {/* Brillo especular en el centro de la palma donde reposa la cápsula */}
+        <ellipse cx="78" cy="62" rx="34" ry="16" fill={`url(#handHighlight${idSuffix})`} />
       </svg>
     </div>
   );

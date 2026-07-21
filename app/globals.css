@@ -1170,18 +1170,50 @@ input {
   flex-direction: row;
   justify-content: center;
   align-items: flex-start;
-  gap: 52px;
+  gap: 48px;
   width: 100%;
   max-width: 680px;
   margin: 0 auto;
-  padding: 20px 0;
+  padding: 16px 0;
 }
 
 @media (max-width: 640px) {
   .hub-doors-pills {
-    flex-direction: column;
-    align-items: center;
-    gap: 40px;
+    flex-direction: row !important; /* Siempre horizontal en mobile */
+    justify-content: space-around;
+    gap: 12px;
+    padding: 10px 4px;
+  }
+
+  .hub-option-btn {
+    max-width: 48%;
+    padding: 8px 2px;
+  }
+
+  .hub-pill-wrapper {
+    width: 120px !important;
+    height: 75px !important;
+  }
+
+  .hub-3d-pill-svg {
+    width: 110px !important;
+    height: 46px !important;
+  }
+
+  .hub-morpheus-hand-wrap svg {
+    width: 115px !important;
+    height: 75px !important;
+  }
+
+  .hub-option-label {
+    font-size: 1.15rem !important;
+    margin-top: 2px;
+  }
+
+  .hub-option-sub {
+    font-size: 0.72rem !important;
+    max-width: 135px;
+    line-height: 1.25;
   }
 }
 
@@ -1204,7 +1236,7 @@ input {
 }
 
 .hub-option-btn:hover {
-  transform: scale(1.08) translateY(-6px);
+  transform: scale(1.07) translateY(-6px);
 }
 
 .hub-pill-wrapper {
@@ -1213,35 +1245,35 @@ input {
   align-items: center;
   justify-content: center;
   width: 160px;
-  height: 90px;
+  height: 95px;
   margin-bottom: 4px;
 }
 
 .hub-3d-pill-svg {
   position: relative;
-  z-index: 5;
+  z-index: 5; /* Pastilla arriba de la mano */
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .hub-option-btn:hover .hub-3d-pill-svg {
-  transform: scale(1.15) rotate(-15deg) translateY(-8px) !important;
+  transform: scale(1.12) rotate(-15deg) translateY(-6px) !important;
 }
 
-/* Morpheus Hand extending underneath the pill on hover */
+/* Mano de Morfeo emergiendo DEBAJO de la pastilla en hover */
 .hub-morpheus-hand-wrap {
   position: absolute;
-  top: 15px;
+  top: 18px;
   left: 50%;
-  transform: translateX(-50%) translateY(22px) scale(0.85);
+  transform: translateX(-50%) translateY(45px) scale(0.8);
   opacity: 0;
   pointer-events: none;
-  z-index: 2;
-  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1; /* Mano por debajo de la pastilla */
+  transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .hub-option-btn:hover .hub-morpheus-hand-wrap {
   opacity: 1;
-  transform: translateX(-50%) translateY(-2px) scale(1);
+  transform: translateX(-50%) translateY(4px) scale(1.05);
 }
 
 /* Title labels are pure white */
