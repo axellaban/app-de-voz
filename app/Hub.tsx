@@ -129,7 +129,9 @@ export default function Hub() {
           <IaFlag />
         </div>
 
-        <h1 className="hub-h1">Metele el Loro (IA) a tus entrevistas</h1>
+        <h1 className="hub-h1">Metele el Loro a tus entrevistas</h1>
+
+        <span className="hub-tagline-pill">Asistente de IA en Tiempo Real</span>
 
         <div className="hub-doors-pills">
           <Link
@@ -142,7 +144,7 @@ export default function Hub() {
               <MatrixPill3D type="blue" />
             </div>
             <span className="hub-option-label hub-label-blue">Simulador</span>
-            <span className="hub-option-sub">practicá con un entrevistador muy simpático</span>
+            <span className="hub-option-sub">Practicá con simulacros de entrevistas con IA</span>
           </Link>
 
           <Link
@@ -155,7 +157,7 @@ export default function Hub() {
               <MatrixPill3D type="red" />
             </div>
             <span className="hub-option-label hub-label-red">Copiloto</span>
-            <span className="hub-option-sub">te acompaña durante tu entrevista en tiempo real</span>
+            <span className="hub-option-sub">Respuestas instantáneas e indetectables durante entrevistas en vivo</span>
           </Link>
         </div>
       </main>

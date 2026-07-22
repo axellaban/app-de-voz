@@ -1161,7 +1161,38 @@ input {
   letter-spacing: -0.02em;
   text-transform: uppercase;
   color: #fff;
+  margin-bottom: 18px;
+}
+
+.hub-tagline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: rgba(255, 79, 18, 0.12);
+  border: 1px solid rgba(255, 79, 18, 0.5);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
   margin-bottom: clamp(40px, 7vh, 68px);
+}
+
+.hub-tagline-pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff4f12;
+  box-shadow: 0 0 8px 1px rgba(255, 79, 18, 0.9);
+  animation: hubPulseDot 1.6s ease-in-out infinite;
+}
+
+@keyframes hubPulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
 }
 
 /* ===================== Matrix Options (3D Pills + Morpheus Hand) ===================== */
