@@ -7,6 +7,9 @@ import { track } from "./lib/track";
 
 // Palabras que rotan en la 1ra palabra del título (efecto swap).
 const HERO_WORDS = ["Loreá", "crackeá", "hackeá", "pasá"];
+// Palabra más larga: reserva el ancho para que las 4 arranquen en el mismo
+// lugar y el título no se mueva al cambiar.
+const HERO_WIDEST = HERO_WORDS.reduce((a, b) => (b.length >= a.length ? b : a));
 
 // Banderita tipo Final Round con el texto "IA"
 function IaFlag() {
@@ -142,8 +145,13 @@ export default function Hub() {
         </div>
 
         <h1 className="hub-h1">
-          <span key={wordIdx} className="hub-h1-swap">
-            {HERO_WORDS[wordIdx]}
+          <span className="hub-h1-swap">
+            <span className="hub-h1-swap-sizer" aria-hidden="true">
+              {HERO_WIDEST}
+            </span>
+            <span key={wordIdx} className="hub-h1-swap-word">
+              {HERO_WORDS[wordIdx]}
+            </span>
           </span>{" "}
           <span className="hub-h1-rest">
             todas las entrevistas con el asistente de IA en tiempo real.

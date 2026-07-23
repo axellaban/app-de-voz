@@ -1167,7 +1167,7 @@ input {
 }
 
 .hub-h1 {
-  font-size: clamp(1.2rem, 5.2vw, 4.25rem);
+  font-size: clamp(1.4rem, 5.9vw, 4.25rem);
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: -0.02em;
@@ -1176,10 +1176,24 @@ input {
   margin-bottom: clamp(40px, 7vh, 68px);
 }
 
-/* Primera palabra: rota (swap) y usa el mismo gradiente "loro" del botón
-   Responder del copiloto, animado para que los colores fluyan. */
+/* Primera palabra: rota (swap). Un "sizer" invisible reserva el ancho de la
+   palabra más larga para que las 4 arranquen en el mismo lugar y el título no
+   se mueva. La palabra visible va absoluta pegada a la izquierda del slot. */
 .hub-h1-swap {
+  position: relative;
   display: inline-block;
+  text-align: left;
+  vertical-align: baseline;
+}
+.hub-h1-swap-sizer {
+  visibility: hidden;
+}
+.hub-h1-swap-word {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  /* Mismo gradiente "loro" del botón Responder del copiloto, animado. */
   background: linear-gradient(
     90deg,
     #10b981,
@@ -1213,7 +1227,7 @@ input {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hub-h1-swap {
+  .hub-h1-swap-word {
     animation: none;
   }
 }
