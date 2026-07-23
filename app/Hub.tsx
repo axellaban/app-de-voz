@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ParrotSvg } from "./lib/parrot";
 import { track } from "./lib/track";
 
@@ -132,6 +132,42 @@ export default function Hub() {
     return () => clearInterval(id);
   }, []);
 
+  // Resaltado dibujado a mano (rough-notation), el mismo efecto del sitio A13I,
+  // sobre "asistente de IA / en tiempo real". Se dibuja al montar y se recalcula
+  // en resize (el SVG se posiciona según el layout).
+  const hlRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    let cancelled = false;
+    let annotation: { show: () => void; remove: () => void } | null = null;
+    let onResize: (() => void) | null = null;
+    void import("rough-notation").then(({ annotate }) => {
+      if (cancelled || !hlRef.current) return;
+      const make = (animate: boolean) => {
+        const el = hlRef.current;
+        if (!el) return;
+        annotation?.remove();
+        annotation = annotate(el, {
+          type: "highlight",
+          color: "rgba(255,79,18,0.42)",
+          multiline: true,
+          padding: 2,
+          animationDuration: animate ? 900 : 0,
+          iterations: 2,
+        });
+        annotation.show();
+      };
+      const t = setTimeout(() => !cancelled && make(true), 500);
+      onResize = () => make(false);
+      window.addEventListener("resize", onResize);
+      if (cancelled) clearTimeout(t);
+    });
+    return () => {
+      cancelled = true;
+      annotation?.remove();
+      if (onResize) window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
   return (
     <div className="hub">
       <main className="hub-main">
@@ -145,9 +181,14 @@ export default function Hub() {
           <span key={wordIdx} className="hub-h1-swap">
             {HERO_WORDS[wordIdx]}
           </span>{" "}
-          <span className="hub-h1-rest">
-            todas las entrevistas con el{" "}
-            <span className="hub-h1-hl">asistente de IA en tiempo real</span>
+          todas las
+          <br />
+          entrevistas con el
+          <br />
+          <span ref={hlRef} className="hub-h1-hl">
+            asistente de IA
+            <br />
+            en tiempo real
           </span>
         </h1>
 
