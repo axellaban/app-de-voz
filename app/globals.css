@@ -1167,7 +1167,7 @@ input {
 }
 
 .hub-h1 {
-  font-size: clamp(1.4rem, 5.9vw, 4.25rem);
+  font-size: clamp(1.7rem, 7.8vw, 4.75rem);
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: -0.02em;
