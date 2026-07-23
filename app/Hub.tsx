@@ -146,7 +146,8 @@ export default function Hub() {
             {HERO_WORDS[wordIdx]}
           </span>{" "}
           <span className="hub-h1-rest">
-            todas las entrevistas con el asistente de IA en tiempo real.
+            todas las entrevistas con el{" "}
+            <span className="hub-h1-hl">asistente de IA en tiempo real</span>
           </span>
         </h1>
 
