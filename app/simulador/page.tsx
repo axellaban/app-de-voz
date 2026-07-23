@@ -1542,8 +1542,8 @@ export default function SimuladorPage() {
       {phase === "setup" && (
         <>
           <p className="tagline">
-            Practicá entrevistas de trabajo gratis con el Loro simulador de entrevistas. Recibí feedback al instante,
-            mejorá tus respuestas y ganá confianza para cualquier entrevista.
+            Destruí los nervios antes de tu entrevista. Simulá llamadas reales gratis, recibí
+            feedback al instante y descubrí en qué estás fallando.
           </p>
 
           <div className="selectors-row" style={{ marginTop: 8 }}>

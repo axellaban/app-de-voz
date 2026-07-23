@@ -1062,7 +1062,8 @@ export default function Page() {
 
       {!live && (
         <p className="tagline">
-          El Loro escucha tu entrevista en tiempo real y te sopla las respuestas. 🦜
+          El Loro escucha tu entrevista en tiempo real y te sopla las respuestas exactas. 100%
+          indetectable en Google Meet, Teams y Zoom. 🦜
         </p>
       )}
 
